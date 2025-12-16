@@ -1,6 +1,6 @@
 // components/InteractiveMap.tsx
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 interface InteractiveMapProps {
