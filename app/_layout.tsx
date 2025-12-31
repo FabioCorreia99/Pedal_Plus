@@ -14,9 +14,24 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      {/* Definimos headerShown: false para esconder a barra de topo padrão em todas as páginas */}
+      <Stack screenOptions={{ headerShown: false }}>
+        
+        {/* 1. Rota Inicial (Welcome Page) */}
+        <Stack.Screen name="index" />
+
+        {/* 2. Rotas de Autenticação */}
+        <Stack.Screen name="sign-in" />
+        <Stack.Screen name="sign-up" />
+
+        {/* 3. Aplicação Principal (Tabs) */}
+        <Stack.Screen name="(tabs)" />
+
+        {/* 4. Modais (com cabeçalho visível se necessário) */}
+        <Stack.Screen 
+          name="modal" 
+          options={{ presentation: 'modal', title: 'Modal', headerShown: true }} 
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

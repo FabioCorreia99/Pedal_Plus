@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
-import InteractiveMap from '../../components/InteractiveMap';
+//import InteractiveMap from '../../components/InteractiveMap';
 
 const COLORS = { primaryGreen: "#5DBD76", primaryOrange: "#FF9E46" };
 
@@ -18,7 +18,7 @@ export default function FavoritesScreen() {
          </View>
       </View>
       <View style={styles.content}>
-         <View style={styles.mapContainer}><InteractiveMap /></View>
+         <View style={styles.mapContainer}>{/* <InteractiveMap /> */}</View>
          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 16, alignItems: 'center' }}>
             <Text style={{ color: COLORS.primaryOrange, fontWeight: 'bold', fontSize: 18 }}>{tab === 'Routes' ? '8 Lugares' : '4 Lugares'}</Text>
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: COLORS.primaryOrange, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}><Text style={{ color: COLORS.primaryOrange, fontWeight: 'bold', fontSize: 12, marginRight: 4 }}>Ordenar</Text><ChevronDown size={14} color={COLORS.primaryOrange}/></TouchableOpacity>
