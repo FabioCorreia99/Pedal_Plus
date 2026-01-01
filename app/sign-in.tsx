@@ -19,12 +19,8 @@ import {
 import { 
   Eye, 
   EyeOff, 
-  Mountain, 
   Map as MapIcon, 
   Check, 
-  Move,
-  Cloud,
-  Bike
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
@@ -47,7 +43,6 @@ const COLORS = {
   inputBorder: "#333333",
 };
 
-// --- COMPONENTE DE ANIMAÇÃO (FORNECIDO) ---
 interface FloatingProps {
   children: React.ReactNode;
   style?: ViewStyle;
@@ -169,7 +164,7 @@ export default function SignInScreen() {
       } 
       // O redirecionamento acontece automaticamente pelo onAuthStateChange
     } catch (error) {
-      Alert.alert('Erro', 'Ocorreu um erro inesperado.');
+      Alert.alert('Erro', 'Ocorreu um erro inesperado.' + ` ${error}`);
     } finally {
       setLoading(false);
     }
