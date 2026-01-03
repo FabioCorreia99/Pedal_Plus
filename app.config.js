@@ -1,17 +1,20 @@
-{
+import 'dotenv/config';
+
+export default {
   "expo": {
-    "name": "my-app",
-    "slug": "my-app",
+    "name": "pedal-plus",
+    "slug": "pedal-plus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "pedalplus",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.pedalplus.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -19,7 +22,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": process.env.GOOGLE_MAPS_API_KEY
+        }
+      },
     },
     "web": {
       "output": "static",
@@ -38,11 +46,12 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     }
   }
-}
+};
+
