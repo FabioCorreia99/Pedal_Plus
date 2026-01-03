@@ -1,8 +1,11 @@
 import * as Location from 'expo-location';
 import { AlertTriangle, ArrowLeft, MapPin, Search } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import InteractiveMap from '../../components/InteractiveMap';
+
+const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const COLORS = {
   primaryGreen: "#5DBD76", 
@@ -17,7 +20,12 @@ export default function HomeScreen() {
   const [originLabel, setOriginLabel] = useState('');
   const [destinationLabel, setDestinationLabel] = useState('');
   const [routeState, setRouteState] = useState<'search' | 'confirm' | 'navigating'>('search');
-  const [rideMode, setRideMode] = useState('Turist');
+  const [rideMode, setRideMode] = useState('Tourist');
+  const [showOriginSearch, setShowOriginSearch] = useState(false);
+  const [showDestinationSearch, setShowDestinationSearch] = useState(false);
+  
+  const originRef = useRef<any>(null);
+  const destinationRef = useRef<any>(null);
    
   useEffect(() => {
     (async () => {
@@ -35,59 +43,27 @@ export default function HomeScreen() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (origin && destination && routeState === 'search') {
+      setRouteState('confirm');
+    }
+  }, [origin, destination, routeState]);
+
   const handleConfirmDestination = () => {
-    setRouteState('navigating');
-  };
-
-  const [isEditingOrigin, setIsEditingOrigin] = useState(false);
-  // Add geocoding function
-  const geocodeAddress = async (address: string) => {
-    try {
-      const results = await Location.geocodeAsync(address);
-      if (results && results.length > 0) {
-        return {
-          latitude: results[0].latitude,
-          longitude: results[0].longitude,
-        };
-      }
-    } catch (error) {
-      console.error('Geocoding error:', error);
-    }
-    return null;
-  };
-
-  // Update origin handler
-  const handleOriginChange = (text: string) => {
-    setOriginLabel(text);
-    setIsEditingOrigin(true);
-  };
-
-  // Update destination handler
-  const handleDestinationChange = (text: string) => {
-    setDestinationLabel(text);
-  };
-
-  // Geocode and set destination
-  const handleDestinationSubmit = async () => {
-    if (destinationLabel) {
-      const coords = await geocodeAddress(destinationLabel);
-      if (coords) {
-        setDestination(coords);
-        setRouteState('confirm');
-      }
+    if (destination) {
+      setRouteState('navigating');
     }
   };
 
-  // Geocode and update origin
-  const handleOriginSubmit = async () => {
-    if (originLabel && isEditingOrigin) {
-      const coords = await geocodeAddress(originLabel);
-      if (coords) {
-        setOrigin(coords);
-        setIsEditingOrigin(false);
-      }
-    }
-  };
+  const resetInputs = () => {
+    setOrigin(null);
+    setDestination(null);
+    setOriginLabel('');
+    setDestinationLabel('');
+    setRouteState('search');
+    if (originRef.current) originRef.current.clear();
+    if (destinationRef.current) destinationRef.current.clear();
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: '#eff6ff' }}>
@@ -105,32 +81,134 @@ export default function HomeScreen() {
       {routeState === 'search' && (
         <View style={[styles.bottomSheet, { height: '55%' }]}>
            <View style={{ paddingHorizontal: 24, marginTop: -30 }}>
-             <View style={styles.card}>
+             <View style={[styles.card, showOriginSearch || showDestinationSearch ? { zIndex: 10000 } : {}]}>
+               {/* ORIGIN */}
                <View style={styles.searchRow}>
                  <MapPin color={COLORS.primaryOrange} size={20} />
-                 <TextInput 
-                    value={originLabel} 
-                    placeholder="Origin" 
-                    style={{ flex: 1, marginLeft: 12 }}
-                    onChangeText={handleOriginChange}
-                    onSubmitEditing={handleOriginSubmit}
-                    returnKeyType="done"
-                  />
+                 {showOriginSearch ? (
+                   <View style={{ flex: 1, marginLeft: 12 }}>
+                     <GooglePlacesAutocomplete
+                       ref={originRef}
+                       placeholder="Search origin"
+                       fetchDetails={true}
+                       debounce={300}
+                       onPress={(data, details = null) => {
+                         if (details) {
+                           setOrigin({
+                             latitude: details.geometry.location.lat,
+                             longitude: details.geometry.location.lng,
+                           });
+                           setOriginLabel(data.description);
+                           setShowOriginSearch(false);
+                         }
+                       }}
+                       query={{
+                         key: GOOGLE_API_KEY,
+                         language: 'pt',
+                         components: 'country:pt',
+                       }}
+                       styles={{
+                         container: { flex: 0 },
+                         textInput: {
+                           height: 38,
+                           fontSize: 14,
+                           paddingVertical: 0,
+                         },
+                         listView: {
+                          position: 'absolute',
+                          top: 40,
+                          zIndex: 9999,  // Increase from 1000
+                          backgroundColor: 'white',
+                          borderRadius: 8,
+                          elevation: 10,  // Add higher elevation than card
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 3.84,
+                        },
+                       }}
+                       enablePoweredByContainer={false}
+                       textInputProps={{
+                         autoFocus: true,
+                       }}
+                     />
+                   </View>
+                 ) : (
+                   <TouchableOpacity 
+                     style={{ flex: 1, marginLeft: 12 }}
+                     onPress={() => setShowOriginSearch(true)}
+                   >
+                     <Text style={{ fontSize: 14, color: originLabel ? '#1A1A1A' : '#999' }}>
+                       {originLabel || 'Origin'}
+                     </Text>
+                   </TouchableOpacity>
+                 )}
                </View>
+               
                <View style={{ height: 1, backgroundColor: '#eee' }} />
+               
+               {/* DESTINATION */}
                <View style={styles.searchRow}>
                  <MapPin color="#ef4444" size={20} />
-                 <TextInput
-                    value={destinationLabel} 
-                    placeholder="Destination" 
-                    style={{ flex: 1, marginLeft: 12 }} 
-                    onChangeText={handleDestinationChange}
-                    onSubmitEditing={handleDestinationSubmit}
-                    returnKeyType="search"
-                  />
+                 {showDestinationSearch ? (
+                   <View style={{ flex: 1, marginLeft: 12 }}>
+                     <GooglePlacesAutocomplete
+                       ref={destinationRef}
+                       placeholder="Search destination"
+                       fetchDetails={true}
+                       debounce={300}
+                       onPress={(data, details = null) => {
+                         if (details) {
+                           setDestination({
+                             latitude: details.geometry.location.lat,
+                             longitude: details.geometry.location.lng,
+                           });
+                           setDestinationLabel(data.description);
+                           setShowDestinationSearch(false);
+                         }
+                       }}
+                       query={{
+                         key: GOOGLE_API_KEY,
+                         language: 'pt',
+                         components: 'country:pt',
+                       }}
+                       styles={{
+                         container: { flex: 0 },
+                         textInput: {
+                           height: 38,
+                           fontSize: 14,
+                           paddingVertical: 0,
+                         },
+                         listView: {
+                           position: 'absolute',
+                           top: 40,
+                           zIndex: 1000,
+                           backgroundColor: 'white',
+                           borderRadius: 8,
+                           elevation: 5,
+                         },
+                       }}
+                       enablePoweredByContainer={false}
+                       keepResultsAfterBlur={true}
+                       textInputProps={{
+                         autoFocus: true,
+                       }}
+                     />
+                   </View>
+                 ) : (
+                   <TouchableOpacity 
+                     style={{ flex: 1, marginLeft: 12 }}
+                     onPress={() => setShowDestinationSearch(true)}
+                   >
+                     <Text style={{ fontSize: 14, color: destinationLabel ? '#1A1A1A' : '#999' }}>
+                       {destinationLabel || 'Destination'}
+                     </Text>
+                   </TouchableOpacity>
+                 )}
                </View>
              </View>
            </View>
+           
            <ScrollView style={{ flex: 1, padding: 24 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>Rotas Recentes</Text>
               {[1, 2].map(i => (
@@ -203,7 +281,7 @@ export default function HomeScreen() {
                      borderColor: '#ddd' 
                    }}
                  >
-                   <Text style={{fontWeight:'bold', color: '#666'}}>Cancel</Text>
+                   <Text onPress={resetInputs} style={{fontWeight:'bold', color: '#666'}}>Cancel</Text>
                  </TouchableOpacity>
                  <TouchableOpacity 
                    onPress={handleConfirmDestination}
@@ -215,7 +293,7 @@ export default function HomeScreen() {
                      backgroundColor: COLORS.primaryOrange 
                    }}
                  >
-                   <Text onPress={handleConfirmDestination} style={{fontWeight:'bold', color: 'white'}}>Start</Text>
+                   <Text style={{fontWeight:'bold', color: 'white'}}>Start</Text>
                  </TouchableOpacity>
               </View>
            </View>
