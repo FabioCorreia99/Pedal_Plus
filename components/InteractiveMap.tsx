@@ -1,4 +1,3 @@
-// components/InteractiveMap.tsx
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -11,14 +10,16 @@ interface InteractiveMapProps {
   origin?: { latitude: number; longitude: number };
   destination?: { latitude: number; longitude: number };
   currentPosition?: { latitude: number; longitude: number };
+  mapPaddingBottom?: number; // New prop to handle bottom sheet height
 }
 
 const InteractiveMap: React.FC<InteractiveMapProps> = ({ 
-  zoom = 30,
+  zoom = 12,
   showRoute = false,
   origin,
   destination,
-  currentPosition
+  currentPosition,
+  mapPaddingBottom = 0, // Default no padding
 }) => {
   const mapRef = React.useRef<MapView>(null);
 
@@ -37,18 +38,19 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
   }, [showRoute, origin, destination]);
 
   React.useEffect(() => {
-    if (origin && mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: origin.latitude,
-          longitude: origin.longitude,
-          latitudeDelta,
-          longitudeDelta,
-        },
-        800
-      );
+    if (origin && mapRef.current && !showRoute) {
+      // Use setTimeout to ensure map is fully loaded
+      setTimeout(() => {
+        mapRef.current?.animateCamera({
+          center: {
+            latitude: origin.latitude,
+            longitude: origin.longitude,
+          },
+          zoom: zoom,
+        }, { duration: 800 });
+      }, 100);
     }
-  }, [origin]);
+  }, [origin, showRoute]);
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -61,6 +63,12 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
           longitude: origin ? origin.longitude : 4.9041,
           latitudeDelta,
           longitudeDelta,
+        }}
+        mapPadding={{ 
+          top: 0, 
+          right: 0, 
+          bottom: mapPaddingBottom, 
+          left: 0 
         }}
         showsUserLocation={true}
         showsMyLocationButton={false}
