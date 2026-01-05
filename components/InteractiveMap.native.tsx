@@ -1,17 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-
-interface InteractiveMapProps {
-  lat?: number;
-  lon?: number;
-  zoom?: number;
-  showRoute?: boolean;
-  origin?: { latitude: number; longitude: number };
-  destination?: { latitude: number; longitude: number };
-  currentPosition?: { latitude: number; longitude: number };
-  mapPaddingBottom?: number; // New prop to handle bottom sheet height
-}
+import { InteractiveMapProps } from './InteractiveMap.types';
 
 const InteractiveMap: React.FC<InteractiveMapProps> = ({ 
   zoom = 12,
