@@ -38,9 +38,69 @@ export default function ConfirmState({
   const arrivalHours = arrivalTime ? arrivalTime.getHours() : null;
   const arrivalMinutes = arrivalTime ? arrivalTime.getMinutes().toString().padStart(2, '0') : null;
   const arrivalTimeStr = arrivalTime ? `${arrivalHours}:${arrivalMinutes}` : 'N/A';
+  const PILL_WIDTH = 96;
 
   return (
     <View style={styles.bottomSheet}>
+
+      <View
+        style={{
+          position: 'absolute',
+          top: -256,
+          left: 24,
+          alignItems: 'center',
+          flexDirection: 'column',
+          gap: 16,
+        }}
+      >
+        <View
+          style={{
+            width: PILL_WIDTH,
+            backgroundColor: 'white',
+            paddingVertical: 12,
+            paddingHorizontal: 8,
+            borderRadius: 999,
+            elevation: 5,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ fontWeight: 'bold', fontSize: 12 }}>{durationStr} min</Text>
+          <Text style={{ color: '#6b7280' }}>Duration</Text>
+        </View>
+
+        <View
+          style={{
+            width: PILL_WIDTH,
+            backgroundColor: 'white',
+            paddingVertical: 12,
+            paddingHorizontal: 8,
+            borderRadius: 999,
+            elevation: 5,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ fontWeight: 'bold', fontSize: 12 }}>{arrivalTimeStr}</Text>
+          <Text style={{ color: '#6b7280' }}>Est. Arrival</Text>
+        </View>
+
+        <View
+          style={{
+            width: PILL_WIDTH,
+            backgroundColor: 'white',
+            paddingVertical: 12,
+            paddingHorizontal: 8,
+            borderRadius: 999,
+            elevation: 5,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ fontWeight: 'bold', fontSize: 12 }}>
+            {distanceInKm ?? 'N/A'} km
+          </Text>
+          <Text style={{ color: '#6b7280' }}>Distance</Text>
+        </View>
+      </View>
+
       <View style={{ padding: 24 }}>
         <View style={[styles.card, { marginBottom: 24 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
