@@ -6,7 +6,7 @@ import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomp
 import ConfirmState from '../../components/home/confirmStateView';
 import NavigatingState from '../../components/home/navigationStateView';
 import SearchState from '../../components/home/searchStateView';
-import { fetchFastestBikeRoute } from '../../services/routesAPI';
+import { fetchBikeRoute, RideMode } from '../../services/routesAPI';
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
@@ -18,7 +18,7 @@ export default function HomeScreen() {
   const [originLabel, setOriginLabel] = useState('');
   const [destinationLabel, setDestinationLabel] = useState('');
   const [routeState, setRouteState] = useState<'search' | 'confirm' | 'navigating'>('search');
-  const [rideMode, setRideMode] = useState('Tourist');
+  const [rideMode, setRideMode] = useState<RideMode>('Sport');
   const [showOriginSearch, setShowOriginSearch] = useState(false);
   const [showDestinationSearch, setShowDestinationSearch] = useState(false);
   const [routeCoords, setRouteCoords] = useState<LatLng[]>([]);
@@ -63,20 +63,24 @@ export default function HomeScreen() {
       if (!origin || !destination) return;
 
       try {
-        const result = await fetchFastestBikeRoute(origin, destination, GOOGLE_MAPS_API_KEY);
+        const result = await fetchBikeRoute(origin, destination, GOOGLE_MAPS_API_KEY, rideMode);
         if (!cancelled) {
           setRouteCoords(result.coords);
           setRouteMeta({ distanceMeters: result.distanceMeters, duration: result.duration });
         }
       } catch (e) {
-        if (!cancelled) setRouteCoords([]);
+        if (!cancelled) {
+          setRouteCoords([]);
+          setRouteMeta({}); // important
+        }
+        console.log('fetchBikeRoute error', e);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [routeState, origin, destination]);
+  }, [routeState, origin, destination, rideMode]);
 
   const resetInputs = () => {
     setOrigin(null);
@@ -144,7 +148,7 @@ export default function HomeScreen() {
           originLabel={originLabel}
           destinationLabel={destinationLabel}
           rideMode={rideMode}
-          onRideModeChange={setRideMode}
+          onRideModeChange={(mode) => setRideMode(mode as RideMode)}
           onCancel={resetInputs}
           onConfirm={handleConfirmDestination}
           distanceMeters={routeMeta.distanceMeters}
