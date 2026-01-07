@@ -3,44 +3,52 @@ import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { InteractiveMapProps } from './InteractiveMap.types';
 
-const InteractiveMap: React.FC<InteractiveMapProps> = ({ 
+const InteractiveMap: React.FC<InteractiveMapProps> = ({
   zoom = 12,
   showRoute = false,
   origin,
   destination,
   currentPosition,
-  mapPaddingBottom = 0, // Default no padding
+  mapPaddingBottom = 0,
+  routeCoordinates = [],
 }) => {
   const mapRef = React.useRef<MapView>(null);
 
-  // Convert zoom level to latitudeDelta (approximate conversion)
+  // Convert zoom level to deltas (simple approximation)
   const latitudeDelta = 180 / Math.pow(2, zoom);
   const longitudeDelta = latitudeDelta * 1.5;
 
   React.useEffect(() => {
-    // Fit map to show both markers when route is displayed
-    if (showRoute && origin && destination && mapRef.current) {
-      mapRef.current.fitToCoordinates([origin, destination], {
-        edgePadding: { top: 100, right: 50, bottom: 300, left: 50 },
+    if (!showRoute || !mapRef.current) return;
+
+    const coordsToFit =
+      routeCoordinates.length >= 2
+        ? routeCoordinates
+        : origin && destination
+          ? [origin, destination]
+          : [];
+
+    if (coordsToFit.length >= 2) {
+      mapRef.current.fitToCoordinates(coordsToFit, {
+        edgePadding: { top: 100, right: 50, bottom: mapPaddingBottom + 20, left: 50 },
         animated: true,
       });
     }
-  }, [showRoute, origin, destination]);
+  }, [showRoute, origin, destination, routeCoordinates, mapPaddingBottom]);
 
   React.useEffect(() => {
     if (origin && mapRef.current && !showRoute) {
-      // Use setTimeout to ensure map is fully loaded
       setTimeout(() => {
-        mapRef.current?.animateCamera({
-          center: {
-            latitude: origin.latitude,
-            longitude: origin.longitude,
+        mapRef.current?.animateCamera(
+          {
+            center: { latitude: origin.latitude, longitude: origin.longitude },
+            zoom,
           },
-          zoom: zoom,
-        }, { duration: 800 });
+          { duration: 800 }
+        );
       }, 100);
     }
-  }, [origin, showRoute]);
+  }, [origin, showRoute, zoom]);
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -54,71 +62,45 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
           latitudeDelta,
           longitudeDelta,
         }}
-        mapPadding={{ 
-          top: 0, 
-          right: 0, 
-          bottom: mapPaddingBottom, 
-          left: 0 
-        }}
+        mapPadding={{ top: 0, right: 0, bottom: mapPaddingBottom, left: 0 }}
         showsUserLocation={true}
         showsMyLocationButton={false}
         showsCompass={true}
         zoomEnabled={true}
         scrollEnabled={true}
       >
-        {/* Origin Marker (Yellow) */}
-        {origin && (
-          <Marker
-            coordinate={origin}
-            pinColor="#facc15"
-            title="Origin"
-          />
-        )}
+        {origin && <Marker coordinate={origin} pinColor="#facc15" title="Origin" />}
 
-        {/* Destination Marker (Red) */}
         {showRoute && destination && (
-          <Marker
-            coordinate={destination}
-            pinColor="#ef4444"
-            title="Destination"
-          />
+          <Marker coordinate={destination} pinColor="#ef4444" title="Destination" />
         )}
 
-        {/* Current Position Marker (Green) */}
         {showRoute && currentPosition && (
-          <Marker
-            coordinate={currentPosition}
-            pinColor="#5DBD76"
-            title="You are here"
-          />
+          <Marker coordinate={currentPosition} pinColor="#5DBD76" title="You are here" />
         )}
 
-        {/* Route Polyline */}
-        {showRoute && origin && destination && (
+        {showRoute && routeCoordinates.length >= 2 && (
           <Polyline
-            coordinates={[origin, destination]}
+            coordinates={routeCoordinates}
             strokeColor="#4338ca"
             strokeWidth={5}
             lineDashPattern={[10, 5]}
           />
         )}
       </MapView>
-      
-      {/* Blue overlay */}
-      <View 
+
+      <View
         style={[
-          StyleSheet.absoluteFill, 
-          { backgroundColor: 'rgba(30, 58, 138, 0.1)', pointerEvents: 'none' }
-        ]} 
+          StyleSheet.absoluteFill,
+          { backgroundColor: 'rgba(30, 58, 138, 0.1)', pointerEvents: 'none' },
+        ]}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
+  map: { ...StyleSheet.absoluteFillObject },
 });
 
 export default InteractiveMap;

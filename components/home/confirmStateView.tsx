@@ -11,6 +11,8 @@ interface ConfirmStateProps {
   originLabel: string;
   destinationLabel: string;
   rideMode: string;
+  distanceMeters?: number;
+  duration?: string;
   onRideModeChange: (mode: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
@@ -20,10 +22,23 @@ export default function ConfirmState({
   originLabel,
   destinationLabel,
   rideMode,
+  distanceMeters,
+  duration,
   onRideModeChange,
   onCancel,
   onConfirm,
 }: ConfirmStateProps) {
+
+  const durationInMinutes = duration ? Math.ceil(parseInt(duration) / 60) : null;
+  const durationStr = durationInMinutes ? durationInMinutes.toString() : 'N/A';
+  const distanceInKm = distanceMeters ? (distanceMeters / 1000).toFixed(1) : null;
+  const arrivalTime = durationInMinutes
+    ? new Date(Date.now() + durationInMinutes * 60000)
+    : null;
+  const arrivalHours = arrivalTime ? arrivalTime.getHours() : null;
+  const arrivalMinutes = arrivalTime ? arrivalTime.getMinutes().toString().padStart(2, '0') : null;
+  const arrivalTimeStr = arrivalTime ? `${arrivalHours}:${arrivalMinutes}` : 'N/A';
+
   return (
     <View style={styles.bottomSheet}>
       <View style={{ padding: 24 }}>

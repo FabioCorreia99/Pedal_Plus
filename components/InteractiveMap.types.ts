@@ -1,3 +1,5 @@
+import { LatLng } from "react-native-maps";
+
 export interface InteractiveMapProps {
   lat?: number;
   lon?: number;
@@ -7,4 +9,5 @@ export interface InteractiveMapProps {
   destination?: { latitude: number; longitude: number };
   currentPosition?: { latitude: number; longitude: number };
   mapPaddingBottom?: number;
+  routeCoordinates?: LatLng[];
 }

@@ -6,6 +6,9 @@ import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomp
 import ConfirmState from '../../components/home/confirmStateView';
 import NavigatingState from '../../components/home/navigationStateView';
 import SearchState from '../../components/home/searchStateView';
+import { fetchFastestBikeRoute } from '../../services/routesAPI';
+
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
 type LatLng = { latitude: number; longitude: number };
 
@@ -18,6 +21,8 @@ export default function HomeScreen() {
   const [rideMode, setRideMode] = useState('Tourist');
   const [showOriginSearch, setShowOriginSearch] = useState(false);
   const [showDestinationSearch, setShowDestinationSearch] = useState(false);
+  const [routeCoords, setRouteCoords] = useState<LatLng[]>([]);
+  const [routeMeta, setRouteMeta] = useState<{ distanceMeters?: number; duration?: string }>({});
 
   const originRef = useRef<GooglePlacesAutocompleteRef>(null);
   const destinationRef = useRef<GooglePlacesAutocompleteRef>(null);
@@ -50,14 +55,39 @@ export default function HomeScreen() {
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (routeState !== 'confirm') return;
+      if (!origin || !destination) return;
+
+      try {
+        const result = await fetchFastestBikeRoute(origin, destination, GOOGLE_MAPS_API_KEY);
+        if (!cancelled) {
+          setRouteCoords(result.coords);
+          setRouteMeta({ distanceMeters: result.distanceMeters, duration: result.duration });
+        }
+      } catch (e) {
+        if (!cancelled) setRouteCoords([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [routeState, origin, destination]);
+
   const resetInputs = () => {
     setOrigin(null);
     setDestination(null);
     setOriginLabel('');
     setDestinationLabel('');
+    setRouteCoords([]);
+    setRouteMeta({});
     setRouteState('search');
-    if (originRef.current) originRef.current.clear();
-    if (destinationRef.current) destinationRef.current.clear();
+    originRef.current?.clear();
+    destinationRef.current?.clear();
   };
 
   const screenHeight = Dimensions.get('window').height;
@@ -83,6 +113,7 @@ export default function HomeScreen() {
         destination={destination ?? undefined}
         currentPosition={routeState === 'navigating' ? origin ?? undefined : undefined}
         mapPaddingBottom={getMapPaddingBottom()}
+        routeCoordinates={routeCoords}
       />
 
       {routeState === 'search' && (
@@ -116,11 +147,17 @@ export default function HomeScreen() {
           onRideModeChange={setRideMode}
           onCancel={resetInputs}
           onConfirm={handleConfirmDestination}
+          distanceMeters={routeMeta.distanceMeters}
+          duration={routeMeta.duration}
         />
       )}
 
       {routeState === 'navigating' && (
-        <NavigatingState onBack={() => setRouteState('confirm')} />
+        <NavigatingState 
+          onBack={() => setRouteState('confirm')}
+          distanceMeters={routeMeta.distanceMeters}
+          duration={routeMeta.duration}
+         />
       )}
     </View>
   );

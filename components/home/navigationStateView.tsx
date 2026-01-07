@@ -4,9 +4,21 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface NavigatingStateProps {
   onBack: () => void;
+  distanceMeters?: number;
+  duration?: string;
 }
 
-export default function NavigatingState({ onBack }: NavigatingStateProps) {
+export default function NavigatingState({ onBack, distanceMeters, duration }: NavigatingStateProps) {
+  const durationInMinutes = duration ? Math.ceil(parseInt(duration) / 60) : null;
+  const durationStr = durationInMinutes ? durationInMinutes.toString() : 'N/A';
+  const distanceInKm = distanceMeters ? (distanceMeters / 1000).toFixed(1) : null;
+  const arrivalTime = durationInMinutes
+    ? new Date(Date.now() + durationInMinutes * 60000)
+    : null;
+  const arrivalHours = arrivalTime ? arrivalTime.getHours() : null;
+  const arrivalMinutes = arrivalTime ? arrivalTime.getMinutes().toString().padStart(2, '0') : null;
+  const arrivalTimeStr = arrivalTime ? `${arrivalHours}:${arrivalMinutes}` : 'N/A';
+  
   return (
     <>
       <TouchableOpacity
@@ -32,12 +44,12 @@ export default function NavigatingState({ onBack }: NavigatingStateProps) {
           <View style={{ backgroundColor: '#ffedd5', padding: 12, borderRadius: 16, marginBottom: 4 }}>
             <AlertTriangle size={28} color="#f97316" />
           </View>
-          <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#666' }}>In 100m</Text>
+          <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#666' }}>N/A</Text>
         </View>
 
         <View style={{ alignItems: 'center' }}>
-          <Text style={{ fontSize: 24, fontWeight: 'bold' }}>13:06</Text>
-          <Text style={{ color: '#9ca3af', fontWeight: 'bold', fontSize: 12 }}>3 MIN • 0.6 KM</Text>
+          <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{arrivalTimeStr}</Text>
+          <Text style={{ color: '#9ca3af', fontWeight: 'bold', fontSize: 12 }}>{durationStr} MIN • {distanceInKm} KM</Text>
         </View>
 
         <TouchableOpacity style={{ backgroundColor: 'white', padding: 12, borderRadius: 50, elevation: 5 }}>
