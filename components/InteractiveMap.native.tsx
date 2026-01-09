@@ -11,6 +11,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
   currentPosition,
   mapPaddingBottom = 0,
   routeCoordinates = [],
+  isNavigating = false,
+  userHeading = 0,
 }) => {
   const mapRef = React.useRef<MapView>(null);
 
@@ -50,6 +52,24 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
   }, [origin, showRoute, zoom]);
 
+  // Animate camera for navigation mode
+  React.useEffect(() => {
+    if (!isNavigating || !currentPosition || !mapRef.current) return;
+
+    mapRef.current.animateCamera(
+      {
+        center: {
+          latitude: currentPosition.latitude,
+          longitude: currentPosition.longitude,
+        },
+        pitch: 55, // Tilted view (0-90, higher = more tilted)
+        heading: userHeading, // Rotate map based on direction
+        zoom: 17, // Closer zoom for navigation
+      },
+      { duration: 300 } // Smooth animation
+    );
+  }, [isNavigating, currentPosition, userHeading]);
+
   return (
     <View style={StyleSheet.absoluteFill}>
       <MapView
@@ -64,7 +84,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
         }}
         mapPadding={{ top: 0, right: 0, bottom: mapPaddingBottom, left: 0 }}
         showsUserLocation={true}
-        showsMyLocationButton={false}
+        showsMyLocationButton={true}
         showsCompass={true}
         zoomEnabled={true}
         scrollEnabled={true}

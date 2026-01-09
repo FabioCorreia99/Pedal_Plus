@@ -43,8 +43,14 @@ export default {
           "dark": {
             "backgroundColor": "#000000"
           }
-        }
+        },
       ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

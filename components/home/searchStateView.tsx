@@ -48,6 +48,7 @@ export default function SearchState({
             onLocationSelect={(coords, description) => {
               onOriginSelect(coords, description);
             }}
+            showCurrentLocationButton={true}
           />
 
           <LocationSearchInput

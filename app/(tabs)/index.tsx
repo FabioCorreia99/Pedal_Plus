@@ -1,4 +1,5 @@
 import InteractiveMap from '@/components/InteractiveMap';
+import { getCurrentStep, remainingDistanceMeters } from '@/services/navigationCalculations';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, View } from 'react-native';
@@ -6,7 +7,7 @@ import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomp
 import ConfirmState from '../../components/home/confirmStateView';
 import NavigatingState from '../../components/home/navigationStateView';
 import SearchState from '../../components/home/searchStateView';
-import { fetchBikeRoute, RideMode } from '../../services/routesAPI';
+import { fetchBikeRoute, NavigationStep, RideMode } from '../../services/routesAPI';
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
@@ -23,11 +24,23 @@ export default function HomeScreen() {
   const [showDestinationSearch, setShowDestinationSearch] = useState(false);
   const [routeCoords, setRouteCoords] = useState<LatLng[]>([]);
   const [routeMeta, setRouteMeta] = useState<{ distanceMeters?: number; duration?: string }>({});
+  const [currentPosition, setCurrentPosition] = useState<LatLng | null>(null);
+  const [liveMeta, setLiveMeta] = useState<{ remainingMeters?: number; etaDate?: Date }>({});
+  const [routeSteps, setRouteSteps] = useState<NavigationStep[]>([]);
+  const [currentStep, setCurrentStep] = useState<{
+    step: NavigationStep;
+    index: number;
+    distanceToEnd: number;
+  } | null>(null);
+  const [userHeading, setUserHeading] = useState<number>(0);
 
   const originRef = useRef<GooglePlacesAutocompleteRef>(null);
   const destinationRef = useRef<GooglePlacesAutocompleteRef>(null);
 
+  
+
   useEffect(() => {
+    // Get current location on mount, set as origin in search state input
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
@@ -44,18 +57,21 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
+    // Automatically move to confirm state when both origin and destination are set
     if (origin && destination && routeState === 'search') {
       setRouteState('confirm');
     }
   }, [origin, destination, routeState]);
 
   const handleConfirmDestination = () => {
+    // Start navigation
     if (destination) {
       setRouteState('navigating');
     }
   };
 
   useEffect(() => {
+    // Fetch route when in confirm state and origin/destination change
     let cancelled = false;
 
     (async () => {
@@ -71,7 +87,7 @@ export default function HomeScreen() {
       } catch (e) {
         if (!cancelled) {
           setRouteCoords([]);
-          setRouteMeta({}); // important
+          setRouteMeta({});
         }
         console.log('fetchBikeRoute error', e);
       }
@@ -81,6 +97,99 @@ export default function HomeScreen() {
       cancelled = true;
     };
   }, [routeState, origin, destination, rideMode]);
+
+  React.useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
+    let mounted = true;
+
+    (async () => {
+      if (routeState !== 'navigating') return;
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      sub = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          distanceInterval: 5,
+        },
+        (loc) => {
+          if (!mounted) return;
+          setCurrentPosition({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
+          
+          // heading is available from GPS when moving
+          if (loc.coords.heading !== null && loc.coords.heading !== -1) {
+            setUserHeading(loc.coords.heading);
+          }
+        }
+      );
+    })();
+
+    return () => {
+      mounted = false;
+      sub?.remove();
+    };
+  }, [routeState]);
+
+  useEffect(() => {
+    if (routeState !== 'navigating') return;
+    if (!currentPosition) return;
+    if (routeCoords.length < 2) return;
+
+    const remaining = remainingDistanceMeters(currentPosition, routeCoords);
+
+    // Simple ETA: scale original duration by remainingDistance/totalDistance
+    const total = routeMeta.distanceMeters ?? remaining;
+    const totalSeconds = routeMeta.duration ? parseInt(routeMeta.duration) : undefined;
+    const remainingSeconds =
+      totalSeconds && total > 0 ? Math.round(totalSeconds * (remaining / total)) : undefined;
+
+    const etaDate = remainingSeconds ? new Date(Date.now() + remainingSeconds * 1000) : undefined;
+
+    setLiveMeta({ remainingMeters: remaining, etaDate });
+  }, [routeState, currentPosition, routeCoords, routeMeta.distanceMeters, routeMeta.duration]);
+
+  // Update route fetch effect
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (routeState !== 'confirm') return;
+      if (!origin || !destination) return;
+
+      try {
+        const result = await fetchBikeRoute(origin, destination, GOOGLE_MAPS_API_KEY, rideMode);
+        if (!cancelled) {
+          setRouteCoords(result.coords);
+          setRouteMeta({ distanceMeters: result.distanceMeters, duration: result.duration });
+          setRouteSteps(result.steps); // store steps
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setRouteCoords([]);
+          setRouteMeta({});
+          setRouteSteps([]);
+        }
+        console.log('fetchBikeRoute error', e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [routeState, origin, destination, rideMode]);
+
+  // Add effect to track current step while navigating
+  useEffect(() => {
+    if (routeState !== 'navigating') return;
+    if (!currentPosition || routeSteps.length === 0) return;
+
+    const stepInfo = getCurrentStep(currentPosition, routeSteps);
+    setCurrentStep(stepInfo);
+  }, [routeState, currentPosition, routeSteps]);
 
   const resetInputs = () => {
     setOrigin(null);
@@ -115,9 +224,11 @@ export default function HomeScreen() {
         showRoute={routeState !== 'search'}
         origin={origin ?? undefined}
         destination={destination ?? undefined}
-        currentPosition={routeState === 'navigating' ? origin ?? undefined : undefined}
+        currentPosition={routeState === 'navigating' ? currentPosition ?? undefined : undefined}
         mapPaddingBottom={getMapPaddingBottom()}
         routeCoordinates={routeCoords}
+        isNavigating={routeState === 'navigating'}
+        userHeading={userHeading}
       />
 
       {routeState === 'search' && (
@@ -157,12 +268,14 @@ export default function HomeScreen() {
       )}
 
       {routeState === 'navigating' && (
-        <NavigatingState 
+        <NavigatingState
           onBack={() => setRouteState('confirm')}
-          distanceMeters={routeMeta.distanceMeters}
-          duration={routeMeta.duration}
-         />
+          distanceMeters={liveMeta.remainingMeters ?? routeMeta.distanceMeters}
+          duration={liveMeta.etaDate ? Math.round((liveMeta.etaDate.getTime() - Date.now()) / 60000).toString() : routeMeta.duration}
+          currentStep={currentStep}
+        />
       )}
+
     </View>
   );
 }

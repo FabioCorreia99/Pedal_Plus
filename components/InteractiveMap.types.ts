@@ -10,4 +10,6 @@ export interface InteractiveMapProps {
   currentPosition?: { latitude: number; longitude: number };
   mapPaddingBottom?: number;
   routeCoordinates?: LatLng[];
+  isNavigating?: boolean;
+  userHeading?: number; // direction user is facing
 }
