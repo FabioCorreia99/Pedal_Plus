@@ -1,11 +1,12 @@
 import InteractiveMap from '@/components/InteractiveMap';
 import { getCurrentStep, remainingDistanceMeters } from '@/services/navigationCalculations';
 import * as Location from 'expo-location';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Dimensions, View } from 'react-native';
 import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 import ConfirmState from '../../components/home/confirmStateView';
 import NavigatingState from '../../components/home/navigationStateView';
+import PostActivityModal from '../../components/home/postActivityModal';
 import SearchState from '../../components/home/searchStateView';
 import { fetchBikeRoute, NavigationStep, RideMode } from '../../services/routesAPI';
 
@@ -33,11 +34,16 @@ export default function HomeScreen() {
     distanceToEnd: number;
   } | null>(null);
   const [userHeading, setUserHeading] = useState<number>(0);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [routeStartTime, setRouteStartTime] = useState<Date | null>(null);
+  const [routeCompletionData, setRouteCompletionData] = useState<{
+    durationMinutes: number;
+    completedAt: Date;
+  } | null>(null);
 
   const originRef = useRef<GooglePlacesAutocompleteRef>(null);
   const destinationRef = useRef<GooglePlacesAutocompleteRef>(null);
-
-  
+  const hasCompletedRoute = useRef(false); // Add this to prevent multiple triggers
 
   useEffect(() => {
     // Get current location on mount, set as origin in search state input
@@ -67,7 +73,43 @@ export default function HomeScreen() {
     // Start navigation
     if (destination) {
       setRouteState('navigating');
+      setRouteStartTime(new Date()); // Record when navigation starts
+      hasCompletedRoute.current = false; // Reset completion flag
     }
+  };
+
+  const handleRouteComplete = useCallback(() => {
+    console.log('handleRouteComplete called', {
+      hasCompleted: hasCompletedRoute.current,
+      routeStartTime,
+    });
+
+    // Prevent multiple triggers
+    if (hasCompletedRoute.current) {
+      console.log('Route already completed, skipping');
+      return;
+    }
+
+    if (!routeStartTime) {
+      console.log('No route start time, skipping');
+      return;
+    }
+
+    hasCompletedRoute.current = true;
+    const completedAt = new Date();
+    const durationMs = completedAt.getTime() - routeStartTime.getTime();
+    const durationMinutes = Math.ceil(durationMs / 60000);
+
+    setRouteCompletionData({
+      durationMinutes,
+      completedAt,
+    });
+    setShowPostModal(true);
+  }, [routeStartTime]);
+
+  const handleClosePostModal = () => {
+    setShowPostModal(false);
+    resetInputs();
   };
 
   useEffect(() => {
@@ -83,11 +125,13 @@ export default function HomeScreen() {
         if (!cancelled) {
           setRouteCoords(result.coords);
           setRouteMeta({ distanceMeters: result.distanceMeters, duration: result.duration });
+          setRouteSteps(result.steps);
         }
       } catch (e) {
         if (!cancelled) {
           setRouteCoords([]);
           setRouteMeta({});
+          setRouteSteps([]);
         }
         console.log('fetchBikeRoute error', e);
       }
@@ -119,7 +163,7 @@ export default function HomeScreen() {
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
           });
-          
+
           // heading is available from GPS when moving
           if (loc.coords.heading !== null && loc.coords.heading !== -1) {
             setUserHeading(loc.coords.heading);
@@ -152,36 +196,6 @@ export default function HomeScreen() {
     setLiveMeta({ remainingMeters: remaining, etaDate });
   }, [routeState, currentPosition, routeCoords, routeMeta.distanceMeters, routeMeta.duration]);
 
-  // Update route fetch effect
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      if (routeState !== 'confirm') return;
-      if (!origin || !destination) return;
-
-      try {
-        const result = await fetchBikeRoute(origin, destination, GOOGLE_MAPS_API_KEY, rideMode);
-        if (!cancelled) {
-          setRouteCoords(result.coords);
-          setRouteMeta({ distanceMeters: result.distanceMeters, duration: result.duration });
-          setRouteSteps(result.steps); // store steps
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setRouteCoords([]);
-          setRouteMeta({});
-          setRouteSteps([]);
-        }
-        console.log('fetchBikeRoute error', e);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [routeState, origin, destination, rideMode]);
-
   // Add effect to track current step while navigating
   useEffect(() => {
     if (routeState !== 'navigating') return;
@@ -199,6 +213,9 @@ export default function HomeScreen() {
     setRouteCoords([]);
     setRouteMeta({});
     setRouteState('search');
+    setRouteStartTime(null);
+    setRouteCompletionData(null);
+    hasCompletedRoute.current = false; // Reset completion flag
     originRef.current?.clear();
     destinationRef.current?.clear();
   };
@@ -271,11 +288,20 @@ export default function HomeScreen() {
         <NavigatingState
           onBack={() => setRouteState('confirm')}
           distanceMeters={liveMeta.remainingMeters ?? routeMeta.distanceMeters}
-          duration={liveMeta.etaDate ? Math.round((liveMeta.etaDate.getTime() - Date.now()) / 60000).toString() : routeMeta.duration}
+          duration={routeMeta.duration}
           currentStep={currentStep}
+          onRouteComplete={handleRouteComplete}
         />
       )}
 
+      {showPostModal && routeCompletionData && (
+        <PostActivityModal
+          visible={showPostModal}
+          onClose={handleClosePostModal}
+          durationMinutes={routeCompletionData.durationMinutes}
+          completedAt={routeCompletionData.completedAt}
+        />
+      )}
     </View>
   );
 }
