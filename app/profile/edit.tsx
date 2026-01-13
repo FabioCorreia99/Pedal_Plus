@@ -104,7 +104,7 @@ export default function EditProfileScreen() {
 
           <Label text="Género" />
           <View style={styles.genderRow}>
-            {["Male", "Female", "Other"].map((g) => (
+            {["Masculino", "Feminino"].map((g) => (
               <TouchableOpacity
                 key={g}
                 onPress={() => setGender(g as any)}
