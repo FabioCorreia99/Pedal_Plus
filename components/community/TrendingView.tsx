@@ -1,53 +1,242 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { Heart } from 'lucide-react-native';
+import { Heart, MapPin } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
-const COLORS = { primaryOrange: "#FF9E46", darkText: "#1A1A1A", textGray: "#9ca3af" };
+// --- CORES (Mantendo a consistência) ---
+const COLORS = {
+  primaryGreen: "#5DBD76",
+  primaryOrange: "#FF9E46",
+  darkText: "#1A1A1A",
+  textGray: "#9ca3af",
+  white: "#FFFFFF",
+  cardBg: "#F5F5F5",
+};
+
+interface Route {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  image: string;
+}
 
 export default function TrendingView() {
+  const [routesData, setRoutesData] = useState<Route[]>([]);
+
+  useEffect(() => {
+    // AQUI: Adiciona a tua chamada ao Supabase para buscar as rotas reais
+    // Exemplo:
+    // const { data } = await supabase.from('routes').select('*');
+    // setRoutesData(data);
+
+    // DADOS MOCKADOS (Para visualizar o carrossel agora)
+    setRoutesData([
+      {
+        id: '1',
+        name: 'Route name',
+        start: 'Gedung E',
+        end: 'Gedung D',
+        image: 'https://images.unsplash.com/photo-1541625602330-2277a4c46182?q=80&w=600&auto=format&fit=crop',
+      },
+      {
+        id: '2',
+        name: 'Stadium Run',
+        start: 'Main Gate',
+        end: 'North Exit',
+        image: 'https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?q=80&w=600&auto=format&fit=crop',
+      },
+      {
+        id: '3',
+        name: 'Forest Trail',
+        start: 'Entrance',
+        end: 'Lake View',
+        image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=600&auto=format&fit=crop',
+      },
+    ]);
+  }, []);
+
+  const renderRouteCard = ({ item }: { item: Route }) => (
+    <TouchableOpacity style={styles.cardContainer} activeOpacity={0.9}>
+      <Image source={{ uri: item.image }} style={styles.cardImage} />
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>{item.name}</Text>
+          <TouchableOpacity>
+             <Heart size={18} color={COLORS.darkText} />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.cardLocationRow}>
+          <MapPin size={14} color={COLORS.primaryOrange} fill={COLORS.primaryOrange} />
+          <Text style={styles.cardLocationText} numberOfLines={1}>
+            <Text style={styles.boldText}>{item.start}</Text> ••••• 
+            <MapPin size={14} color="#D00" style={{marginLeft: 4}} /> 
+            <Text style={styles.boldText}> {item.end}</Text>
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
-    <View>
-      {/* Card Grande de Rota */}
-      <View style={styles.feedCard}>
-          <Image source={{ uri: "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800" }} style={styles.feedImage} />
-          <View style={styles.feedCardContent}>
-            <Text style={styles.feedTitle}>Forest Loop</Text>
-            <View style={styles.feedRouteInfo}>
-                <Text style={styles.routeText}>
-                  <Text style={{color:COLORS.primaryOrange}}>●</Text> Gedung E <Text style={{color:'#ccc'}}>•••</Text> <Text style={{color:'#ef4444'}}>●</Text> Gedung D
-                </Text>
-                <Heart size={16} color="#9ca3af"/>
-            </View>
-          </View>
+    <View style={styles.container}>
+      
+      {/* 1. CARROSSEL DE ROTAS (Horizontal) */}
+      <View style={styles.carouselSection}>
+        <Text style={styles.sectionTitle}>Trending Routes</Text>
+        <FlatList
+          data={routesData}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={renderRouteCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.carouselContent}
+          snapToInterval={295} // Largura do card (280) + margem (15) para efeito magnético
+          decelerationRate="fast"
+        />
       </View>
 
-      <Text style={styles.sectionTitle}>Feed Activity</Text>
-      
-      {/* Item de Feed Simples */}
-      <View style={styles.activityItem}>
-          <Image source={{ uri: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100" }} style={styles.avatarSmall} />
-          <View style={{ marginLeft: 12 }}>
+      {/* 2. FEED ACTIVITY (Conforme a tua primeira imagem) */}
+      <View style={styles.feedSection}>
+        <Text style={styles.sectionTitle}>Feed Activity</Text>
+        
+        {/* Item de Feed Exemplo */}
+        <View style={styles.feedItem}>
+          <Image 
+            source={{ uri: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=200&auto=format&fit=crop' }} 
+            style={styles.avatar} 
+          />
+          <View style={styles.feedTextContainer}>
             <Text style={styles.userName}>Georg Knorr</Text>
-            <Text style={styles.dateText}>Wednesday, Nov 5, 2025</Text>
+            <Text style={styles.feedDate}>Wednesday, Nov 5, 2025</Text>
+            <Text style={styles.feedAction}>Completed a 5km ride near Gedung E</Text>
           </View>
+        </View>
+
+        {/* Outro Item de Feed */}
+        <View style={styles.feedItem}>
+          <View style={[styles.avatar, { backgroundColor: COLORS.primaryOrange, alignItems: 'center', justifyContent: 'center' }]}>
+             <Text style={{color: 'white', fontWeight: 'bold'}}>JD</Text>
+          </View>
+          <View style={styles.feedTextContainer}>
+            <Text style={styles.userName}>John Doe</Text>
+            <Text style={styles.feedDate}>Yesterday</Text>
+            <Text style={styles.feedAction}>Created a new group ´Morning Cyclists´</Text>
+          </View>
+        </View>
+
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  feedCard: { 
-    backgroundColor: 'white', borderRadius: 24, overflow: 'hidden', marginBottom: 24, 
-    shadowColor: '#000', shadowOpacity: 0.05, elevation: 2 
+  container: {
+    paddingBottom: 20,
   },
-  feedImage: { width: '100%', height: 160 },
-  feedCardContent: { padding: 16 },
-  feedTitle: { fontWeight: 'bold', fontSize: 16, color: COLORS.darkText },
-  feedRouteInfo: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, alignItems: 'center' },
-  routeText: { fontSize: 12, color: '#6b7280', fontWeight: 'bold' },
-  sectionTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 16, color: COLORS.darkText },
-  activityItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  avatarSmall: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: '#eee' },
-  userName: { fontWeight: 'bold', color: COLORS.darkText },
-  dateText: { fontSize: 12, color: '#6b7280' },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.darkText,
+    marginBottom: 15,
+    paddingHorizontal: 20, // Alinhado com o padding do ecrã principal
+  },
+  
+  // CARROSSEL
+  carouselSection: {
+    marginBottom: 30,
+  },
+  carouselContent: {
+    paddingLeft: 20, // Espaço inicial à esquerda
+    paddingRight: 5,
+  },
+  cardContainer: {
+    width: 280,
+    height: 190, // Altura ligeiramente maior para acomodar melhor o texto
+    marginRight: 15,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 16, // Mais arredondado conforme design moderno
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+  cardImage: {
+    width: '100%',
+    height: 115,
+    backgroundColor: '#E0E0E0',
+  },
+  cardContent: {
+    padding: 12,
+    justifyContent: 'space-between',
+    flex: 1,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  cardTitle: {
+    fontWeight: '700',
+    fontSize: 15,
+    color: COLORS.darkText,
+    flex: 1,
+    marginRight: 8,
+  },
+  cardLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  cardLocationText: {
+    fontSize: 12,
+    color: COLORS.darkText,
+    marginLeft: 6,
+    flex: 1,
+  },
+  boldText: {
+    fontWeight: '600',
+  },
+
+  // FEED
+  feedSection: {
+    marginTop: 10,
+  },
+  feedItem: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#ddd',
+  },
+  feedTextContainer: {
+    marginLeft: 15,
+    flex: 1,
+  },
+  userName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.darkText,
+  },
+  feedDate: {
+    fontSize: 12,
+    color: COLORS.textGray,
+    marginBottom: 2,
+  },
+  feedAction: {
+    fontSize: 13,
+    color: '#444',
+    marginTop: 2,
+  },
 });
