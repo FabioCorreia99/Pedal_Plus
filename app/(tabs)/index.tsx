@@ -14,6 +14,8 @@ const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY as strin
 
 type LatLng = { latitude: number; longitude: number };
 
+// TODO: implement routeId props in PostActivityModal - should be passed if the route is saved in the DB
+
 export default function HomeScreen() {
   const [origin, setOrigin] = useState<LatLng | null>(null);
   const [destination, setDestination] = useState<LatLng | null>(null);
@@ -300,6 +302,10 @@ export default function HomeScreen() {
           onClose={handleClosePostModal}
           durationMinutes={routeCompletionData.durationMinutes}
           completedAt={routeCompletionData.completedAt}
+          routeId={null} // No route ID for now, implement later if we have time
+          distanceKm={
+            routeMeta.distanceMeters ? routeMeta.distanceMeters / 1000 : undefined
+          }
         />
       )}
     </View>

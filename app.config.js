@@ -26,6 +26,7 @@ export default {
           "apiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
         }
       },
+      "permissions": ["CAMERA"]
     },
     "web": {
       "output": "static",

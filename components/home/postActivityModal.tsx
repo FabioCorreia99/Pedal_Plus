@@ -1,6 +1,10 @@
-import { X } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as Sharing from 'expo-sharing';
+import { Facebook, Instagram, Share2, Twitter, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -9,12 +13,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { supabase } from '../../lib/supabase';
+
+// TODO: add photo upload functionality 
 
 interface PostActivityModalProps {
   visible: boolean;
   onClose: () => void;
   durationMinutes: number;
   completedAt: Date;
+  routeId?: string | null;
+  distanceKm?: number;
 }
 
 export default function PostActivityModal({
@@ -22,9 +31,15 @@ export default function PostActivityModal({
   onClose,
   durationMinutes,
   completedAt,
+  distanceKm,
+  routeId,
 }: PostActivityModalProps) {
   const [description, setDescription] = useState('');
+  const [title, setTitle] = useState('');
   const [visibility, setVisibility] = useState<'everyone' | 'friends' | 'private'>('everyone');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoPreviewVisible, setPhotoPreviewVisible] = useState(false);
+  const [tempPhotoUri, setTempPhotoUri] = useState<string | null>(null);
 
   const formatDate = (date: Date) => {
     const months = [
@@ -63,13 +78,66 @@ export default function PostActivityModal({
     }
   };
 
-  const handlePost = () => {
+  const handlePhotoUpload = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          'Camera permission needed',
+          'Please allow camera access to take a photo for your activity.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+
+      if (result.canceled) return;
+
+      const uri = result.assets?.[0]?.uri ?? null;
+      if (!uri) return;
+
+      // Show preview modal with overlay + share placeholders
+      setTempPhotoUri(uri);
+      setPhotoPreviewVisible(true);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Could not open the camera.');
+    }
+  };
+
+  
+
+  const handlePost = async () => {
     // TODO: Implement post logic
-    console.log('Posting activity:', {
-      durationMinutes,
-      completedAt,
-      description,
-      visibility,
+    await supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        // Here you would typically send the activity data to your backend
+        console.log('Posting activity for user:', user.id);
+        await supabase.from('activities').insert({
+          user_id: user.id,
+          route_id: routeId,
+          title,
+          description,
+          photo_url: photoUri,
+          distance_km: distanceKm || 0, 
+          duration_minutes: durationMinutes,
+          completed_at: completedAt.toISOString(),
+          visibility,
+          points_earned: ((distanceKm || 0) * 0.1),
+          eco_impact_score: ((distanceKm || 0) * 0.05),
+          calories_burned: ((distanceKm || 0) * 8),
+
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error('Error posting activity:', error);
+          } else {
+            console.log('Activity posted successfully:', data);
+          }
+        });
+      }
     });
     onClose();
   };
@@ -99,7 +167,7 @@ export default function PostActivityModal({
           </View>
 
           {/* Add Photo/Video */}
-          <TouchableOpacity style={styles.mediaButton}>
+          <TouchableOpacity style={styles.mediaButton } onPress={handlePhotoUpload}>
             <View style={styles.mediaIconContainer}>
               <View style={styles.imageIcon}>
                 <View style={styles.imageIconInner} />
@@ -108,6 +176,20 @@ export default function PostActivityModal({
             </View>
             <Text style={styles.mediaButtonText}>Add a photo/video</Text>
           </TouchableOpacity>
+
+          {/* Title */}
+          <View style={styles.titleContainer}>
+            <TextInput
+              style={styles.titleInput}
+              placeholder="Title"
+              multiline
+              maxLength={2000}
+              value={title}
+              onChangeText={setTitle}
+              textAlignVertical="top"
+            />
+            <Text style={styles.charCount}>{title.length}/2000</Text>
+          </View>
 
           {/* Description */}
           <View style={styles.descriptionContainer}>
@@ -145,6 +227,113 @@ export default function PostActivityModal({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Photo preview modal */}
+      <Modal visible={photoPreviewVisible} animationType="slide" transparent={false}>
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <View style={{ paddingTop: 60, paddingHorizontal: 16, paddingBottom: 16 }}>
+            <TouchableOpacity
+              onPress={() => {
+                setPhotoPreviewVisible(false);
+                setTempPhotoUri(null);
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 16 }}>Back</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            {tempPhotoUri ? (
+              <View style={{ width: '100%', height: '100%' }}>
+                <Image
+                  source={{ uri: tempPhotoUri }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+
+                {/* Overlay */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    left: 16,
+                    right: 16,
+                    bottom: 120,
+                    backgroundColor: 'rgba(0,0,0,0.55)',
+                    borderRadius: 12,
+                    padding: 12,
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>
+                    {(distanceKm ?? 0).toFixed(2)} km
+                  </Text>
+                  <Text style={{ color: '#fff', marginTop: 4 }}>
+                    {durationMinutes} min
+                  </Text>
+                  <Text style={{ color: '#fff', marginTop: 4 }}>
+                    {formatDate(completedAt)}
+                  </Text>
+                </View>
+
+                {/* Share icons (placeholders) */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 40,
+                    flexDirection: 'row',
+                    justifyContent: 'space-evenly',
+                    alignItems: 'center',
+                    paddingHorizontal: 24,
+                  }}
+                >
+                  <TouchableOpacity onPress={() => { /* TODO */ }}>
+                    <Instagram color="#fff" size={28} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { /* TODO */ }}>
+                    <Facebook color="#fff" size={28} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { /* TODO */ }}>
+                    <Twitter color="#fff" size={28} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      // Optional generic share now (kept simple); remove if you truly want only placeholders.
+                      if (tempPhotoUri && (await Sharing.isAvailableAsync())) {
+                        await Sharing.shareAsync(tempPhotoUri);
+                      }
+                    }}
+                  >
+                    <Share2 color="#fff" size={28} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Done => store uri in photoUri and go back to PostActivityModal */}
+          <View style={{ padding: 16, paddingBottom: 40, backgroundColor: '#000' }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#FF9331',
+                paddingVertical: 14,
+                borderRadius: 999,
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                setPhotoUri(tempPhotoUri);
+                setPhotoPreviewVisible(false);
+                setTempPhotoUri(null);
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+                Done
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </Modal>
   );
 }
@@ -252,6 +441,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     minHeight: 80,
+  },
+  titleInput: {
+    fontSize: 16,
+    color: '#333',
+    minHeight: 40,
+  },
+  titleContainer: {
+    marginTop: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 16,
+    padding: 16,
+    minHeight: 60,
   },
   charCount: {
     fontSize: 12,
