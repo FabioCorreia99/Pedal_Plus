@@ -2,13 +2,14 @@ import { useRouter } from "expo-router";
 import { Trash2, X } from "lucide-react-native";
 import React, { useState } from "react";
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { supabase } from "../../../lib/supabase";
 
 const COLORS = {
   green: "#5DBD76",
@@ -23,37 +24,76 @@ export default function AccountSettingsScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    Alert.alert("Success", "Account details updated (mock).");
+  /* ---------- SAVE CHANGES ---------- */
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+
+      if (email) {
+        const { error } = await supabase.auth.updateUser({ email });
+        if (error) {
+          Alert.alert("Erro ao atualizar email", error.message);
+          return;
+        }
+
+        Alert.alert(
+          "Confirmação necessária",
+          "Enviámos um email para confirmar a alteração."
+        );
+      }
+
+      if (password) {
+        if (password.length < 6) {
+          Alert.alert("Erro", "A password deve ter pelo menos 6 caracteres");
+          return;
+        }
+
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) {
+          Alert.alert("Erro ao atualizar password", error.message);
+          return;
+        }
+
+        Alert.alert("Sucesso", "Palavra-passe atualizada");
+        setPassword("");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
+  /* ---------- DELETE ACCOUNT (MOCK) ---------- */
   const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => Alert.alert("Account deleted", "Mock action only."),
-        },
-      ]
-    );
+    Alert.alert("Eliminar Conta", "Esta ação é permanente e irreversível.", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: () =>
+          Alert.alert(
+            "Ainda não disponível",
+            "A eliminação de conta será implementada mais tarde."
+          ),
+      },
+    ]);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.green }}>
-      {/* Header */}
+      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Conta</Text>
         <TouchableOpacity onPress={() => router.back()}>
           <X size={22} color="white" />
         </TouchableOpacity>
       </View>
+
+      {/* CONTENT */}
       <View style={styles.content}>
         <View style={{ padding: 24 }}>
+          {/* EMAIL */}
           <Text style={styles.sectionTitle}>Alterar Email</Text>
           <TextInput
             placeholder="Novo email"
@@ -64,6 +104,7 @@ export default function AccountSettingsScreen() {
             style={styles.input}
           />
 
+          {/* PASSWORD */}
           <Text style={styles.sectionTitle}>Alterar Palavra-passe</Text>
           <TextInput
             placeholder="Nova palavra-passe"
@@ -73,11 +114,17 @@ export default function AccountSettingsScreen() {
             style={styles.input}
           />
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-            <Text style={styles.saveText}>Guardar Alterações</Text>
+          <TouchableOpacity
+            style={styles.saveBtn}
+            onPress={handleSave}
+            disabled={loading}
+          >
+            <Text style={styles.saveText}>
+              {loading ? "A guardar..." : "Guardar Alterações"}
+            </Text>
           </TouchableOpacity>
 
-          {/* Delete account */}
+          {/* DELETE ACCOUNT */}
           <TouchableOpacity
             style={styles.deleteBtn}
             onPress={handleDeleteAccount}
@@ -90,6 +137,8 @@ export default function AccountSettingsScreen() {
     </View>
   );
 }
+
+/* ---------- STYLES ---------- */
 
 const styles = StyleSheet.create({
   header: {

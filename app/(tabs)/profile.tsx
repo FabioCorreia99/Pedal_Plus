@@ -1,3 +1,4 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { Edit, LogOut, Settings, Share2 } from "lucide-react-native";
 import React, { useState } from "react";
@@ -30,9 +31,61 @@ const ACTIVITY_DATA: Record<Period, number[]> = {
   quarter: [30, 45, 40, 60, 55, 50, 65],
 };
 
+/* ---------- TYPES ---------- */
+
+interface Profile {
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+}
+
+/* ---------- SCREEN ---------- */
+
 export default function ProfileScreen() {
   const router = useRouter();
   const [period, setPeriod] = useState<Period>("week");
+
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProfile();
+    }, [])
+  );
+
+  const fetchProfile = async () => {
+    try {
+      setLoadingProfile(true);
+
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.warn("Utilizador não autenticado");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, username, avatar_url")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Erro ao buscar profile:", error.message);
+        return;
+      }
+
+      setProfile(data);
+    } catch (err) {
+      console.error("Erro inesperado:", err);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -61,15 +114,12 @@ export default function ProfileScreen() {
     <View style={{ flex: 1, backgroundColor: COLORS.primaryGreen }}>
       {/* HEADER */}
       <View style={styles.header}>
-        {/* Esquerda — Editar Perfil */}
         <TouchableOpacity onPress={() => router.push("/profile/edit")}>
           <Edit size={22} color="white" />
         </TouchableOpacity>
 
-        {/* Título */}
         <Text style={styles.headerTitle}>Perfil</Text>
 
-        {/* Direita — Share + Settings */}
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleShare}>
             <Share2 size={22} color="white" />
@@ -84,17 +134,21 @@ export default function ProfileScreen() {
       {/* CONTENT */}
       <View style={styles.content}>
         <ScrollView>
-          {/* Profile Card */}
+          {/* PROFILE CARD */}
           <View style={styles.profileCard}>
-            <Image
-              source={{
-                uri: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200",
-              }}
-              style={styles.avatar}
+            <Avatar
+              username={profile?.username}
+              avatarUrl={profile?.avatar_url}
             />
 
             <View style={{ flex: 1, marginLeft: 16 }}>
-              <Text style={styles.name}>Georg Knorr</Text>
+              <Text style={styles.name}>
+                {loadingProfile
+                  ? "—"
+                  : profile?.full_name ||
+                    profile?.username ||
+                    "Utilizador Pedal+"}
+              </Text>
 
               <View style={styles.statsRow}>
                 <Stat label="Rides" value="270" />
@@ -104,7 +158,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Activity */}
+          {/* ACTIVITY */}
           <View style={styles.chartCard}>
             <Text style={styles.sectionTitle}>Atividade</Text>
 
@@ -143,7 +197,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Dashboard */}
+          {/* DASHBOARD */}
           <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
             <Text style={styles.sectionTitle}>Dashboard</Text>
 
@@ -164,7 +218,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Logout */}
+          {/* LOGOUT */}
           <View style={{ paddingHorizontal: 24, marginTop: 40 }}>
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
               <LogOut size={20} color={COLORS.danger} />
@@ -214,6 +268,26 @@ function PeriodButton({
         {label}
       </Text>
     </TouchableOpacity>
+  );
+}
+
+function Avatar({
+  username,
+  avatarUrl,
+}: {
+  username?: string | null;
+  avatarUrl?: string | null;
+}) {
+  if (avatarUrl) {
+    return <Image source={{ uri: avatarUrl }} style={styles.avatar} />;
+  }
+
+  const initial = username?.charAt(0).toUpperCase() ?? "?";
+
+  return (
+    <View style={styles.avatarFallback}>
+      <Text style={styles.avatarInitial}>{initial}</Text>
+    </View>
   );
 }
 
@@ -343,5 +417,19 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     fontWeight: "600",
     fontSize: 16,
+  },
+  avatarFallback: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.teal,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  avatarInitial: {
+    color: "white",
+    fontSize: 32,
+    fontWeight: "bold",
   },
 });
