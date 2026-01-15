@@ -169,21 +169,8 @@ export default function SignUpScreen() {
         return;
       }
 
-      if (data.user) {
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: data.user.id,
-          username,
-          full_name: username,
-          total_points: 0,
-        });
-
-        if (profileError) {
-          console.error(profileError.message);
-        }
-      }
-
       router.replace("./(tabs)/");
-    } catch (err) {
+    } catch {
       Alert.alert("Erro", "Ocorreu um erro inesperado.");
     } finally {
       setLoading(false);
@@ -348,8 +335,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   inputWrapper: {
-    marginBottom: 20,
+    marginBottom: 25,
+    position: "relative",
+    height: 55,
+    justifyContent: "center",
   },
+
   inputLabel: {
     position: "absolute",
     top: -10,
@@ -357,24 +348,36 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     paddingHorizontal: 5,
     fontSize: 14,
+    color: COLORS.darkText,
+    zIndex: 1,
   },
+
   input: {
     borderWidth: 1,
+    borderColor: COLORS.darkText,
     borderRadius: 25,
     height: 50,
     paddingHorizontal: 20,
+    fontSize: 16,
+    color: COLORS.darkText,
   },
+
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
+    borderColor: COLORS.darkText,
     borderRadius: 25,
     height: 50,
     paddingHorizontal: 20,
   },
+
   inputPasswordFlex: {
     flex: 1,
+    fontSize: 16,
+    color: COLORS.darkText,
   },
+
   registerButton: {
     backgroundColor: COLORS.primaryOrange,
     height: 55,
