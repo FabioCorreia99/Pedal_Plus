@@ -40,9 +40,9 @@ export default function TrendingView() {
     setRoutesData([
       {
         id: '1',
-        name: 'Route name',
-        start: 'Gedung E',
-        end: 'Gedung D',
+        name: 'Marginal',
+        start: 'Varzim Lazer',
+        end: 'Forte de São João',
         image: 'https://images.unsplash.com/photo-1541625602330-2277a4c46182?q=80&w=600&auto=format&fit=crop',
       },
       {
@@ -90,7 +90,7 @@ export default function TrendingView() {
       
       {/* 1. CARROSSEL DE ROTAS (Horizontal) */}
       <View style={styles.carouselSection}>
-        <Text style={styles.sectionTitle}>Trending Routes</Text>
+        <Text style={styles.sectionTitle}>Rotas em Tendência</Text>
         <FlatList
           data={routesData}
           horizontal
@@ -105,7 +105,7 @@ export default function TrendingView() {
 
       {/* 2. FEED ACTIVITY (Conforme a tua primeira imagem) */}
       <View style={styles.feedSection}>
-        <Text style={styles.sectionTitle}>Feed Activity</Text>
+        <Text style={styles.sectionTitle}>Atividade</Text>
         
         {/* Item de Feed Exemplo */}
         <View style={styles.feedItem}>
@@ -115,8 +115,8 @@ export default function TrendingView() {
           />
           <View style={styles.feedTextContainer}>
             <Text style={styles.userName}>Georg Knorr</Text>
-            <Text style={styles.feedDate}>Wednesday, Nov 5, 2025</Text>
-            <Text style={styles.feedAction}>Completed a 5km ride near Gedung E</Text>
+            <Text style={styles.feedDate}>Quarta-feira, Nov 5, 2025</Text>
+            <Text style={styles.feedAction}>Completou um passeio de 5km perto do Varzim Lazer</Text>
           </View>
         </View>
 
@@ -127,8 +127,8 @@ export default function TrendingView() {
           </View>
           <View style={styles.feedTextContainer}>
             <Text style={styles.userName}>John Doe</Text>
-            <Text style={styles.feedDate}>Yesterday</Text>
-            <Text style={styles.feedAction}>Created a new group ´Morning Cyclists´</Text>
+            <Text style={styles.feedDate}>Ontem</Text>
+            <Text style={styles.feedAction}>Criou um novo grupo ´Ciclistas Matinais´</Text>
           </View>
         </View>
 

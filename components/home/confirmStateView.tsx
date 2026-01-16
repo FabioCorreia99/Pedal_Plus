@@ -65,7 +65,7 @@ export default function ConfirmState({
           }}
         >
           <Text style={{ fontWeight: 'bold', fontSize: 12 }}>{durationStr} min</Text>
-          <Text style={{ color: '#6b7280' }}>Duration</Text>
+          <Text style={{ color: '#6b7280' }}>Duração</Text>
         </View>
 
         <View
@@ -80,7 +80,7 @@ export default function ConfirmState({
           }}
         >
           <Text style={{ fontWeight: 'bold', fontSize: 12 }}>{arrivalTimeStr}</Text>
-          <Text style={{ color: '#6b7280' }}>Est. Arrival</Text>
+          <Text style={{ color: '#6b7280' }}>Chegada</Text>
         </View>
 
         <View
@@ -97,7 +97,7 @@ export default function ConfirmState({
           <Text style={{ fontWeight: 'bold', fontSize: 12 }}>
             {distanceInKm ?? 'N/A'} km
           </Text>
-          <Text style={{ color: '#6b7280' }}>Distance</Text>
+          <Text style={{ color: '#6b7280' }}>Distância</Text>
         </View>
       </View>
 
@@ -105,15 +105,15 @@ export default function ConfirmState({
         <View style={[styles.card, { marginBottom: 24 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
             <MapPin color="#facc15" size={20} />
-            <Text style={{ marginLeft: 10, fontWeight: 'bold' }}>{originLabel || 'Origin'}</Text>
+            <Text style={{ marginLeft: 10, fontWeight: 'bold' }}>{originLabel || 'Origem'}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <MapPin color="#ef4444" size={20} />
-            <Text style={{ marginLeft: 10, fontWeight: 'bold' }}>{destinationLabel || 'Destination'}</Text>
+            <Text style={{ marginLeft: 10, fontWeight: 'bold' }}>{destinationLabel || 'Destino'}</Text>
           </View>
         </View>
 
-        <Text style={{ fontWeight: 'bold', marginBottom: 12 }}>Navigation Mode</Text>
+        <Text style={{ fontWeight: 'bold', marginBottom: 12 }}>Modo de Navegação</Text>
         <View style={{ flexDirection: 'row', backgroundColor: '#F0FDF4', padding: 4, borderRadius: 12, marginBottom: 32 }}>
           {['Sport', 'Tourist', 'Safest'].map(mode => (
             <TouchableOpacity
@@ -151,7 +151,7 @@ export default function ConfirmState({
               borderColor: '#ddd'
             }}
           >
-            <Text style={{ fontWeight: 'bold', color: '#666' }}>Cancel</Text>
+            <Text style={{ fontWeight: 'bold', color: '#666' }}>Cancelar</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onConfirm}
@@ -163,7 +163,7 @@ export default function ConfirmState({
               backgroundColor: COLORS.primaryOrange
             }}
           >
-            <Text style={{ fontWeight: 'bold', color: 'white' }}>Start</Text>
+            <Text style={{ fontWeight: 'bold', color: 'white' }}>Começar</Text>
           </TouchableOpacity>
         </View>
       </View>

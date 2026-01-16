@@ -1,35 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'expo-router';
 import {
+  Check,
+  Eye,
+  EyeOff
+} from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
-  View,
   TextInput,
   TouchableOpacity,
-  StatusBar,
-  Platform,
-  KeyboardAvoidingView,
-  ScrollView,
-  Dimensions,
-  Animated,
-  Easing,
-  Alert,
-  ActivityIndicator,
+  View,
   ViewStyle
 } from 'react-native';
-import { 
-  Eye, 
-  EyeOff, 
-  Map as MapIcon, 
-  Check, 
-} from 'lucide-react-native';
-import { useRouter } from 'expo-router';
 
 // AJUSTE O CAMINHO DA IMPORTAÇÃO CONFORME A ESTRUTURA DO SEU PROJETO
-import { supabase } from '../lib/supabase'; 
+import { supabase } from '../lib/supabase';
 
-import Logo from '../assets/logo_with_name.svg';
 import Left from '../assets/init.svg';
 import Top from '../assets/init2.svg';
+import Logo from '../assets/logo_with_name.svg';
 import Right from '../assets/track.svg';
 
 const { width, height } = Dimensions.get('window');
@@ -219,8 +218,9 @@ export default function SignInScreen() {
             showsVerticalScrollIndicator={false}
           >
             
-            <Text style={styles.title}>Sign In</Text>
-            <Text style={styles.subtitle}>Welcome back</Text>
+            <Text style={styles.title}>Iniciar sessão</Text>
+            <Text style={styles.subtitle}>Bem-vindo de volta</Text>
+
 
             {/* Input de Email */}
             <View style={styles.inputGroup}>
@@ -234,7 +234,7 @@ export default function SignInScreen() {
                   placeholderTextColor="#ccc"
                 />
                 <View style={styles.floatingLabelContainer}>
-                  <Text style={styles.floatingLabelText}>email address</Text>
+                  <Text style={styles.floatingLabelText}>endereço de email</Text>
                 </View>
               </View>
             </View>
@@ -262,7 +262,7 @@ export default function SignInScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.floatingLabelContainer}>
-                  <Text style={styles.floatingLabelText}>password</Text>
+                  <Text style={styles.floatingLabelText}>palavra-passe</Text>
                 </View>
               </View>
             </View>
@@ -277,13 +277,13 @@ export default function SignInScreen() {
                 <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
                   {rememberMe && <Check size={14} color={COLORS.darkText} />}
                 </View>
-                <Text style={styles.rememberText}>Remember me</Text>
+                <Text style={styles.rememberText}>Lembrar-me</Text>
               </TouchableOpacity>
             </View>
 
             {/* Forgot Password */}
             <TouchableOpacity style={styles.forgotButton}>
-              <Text style={styles.forgotText}>forgot your password?</Text>
+              <Text style={styles.forgotText}>Esqueceu-se da palavra-passe?</Text>
             </TouchableOpacity>
 
             {/* Botão Login */}
@@ -296,15 +296,15 @@ export default function SignInScreen() {
               {loading ? (
                 <ActivityIndicator color={COLORS.white} />
               ) : (
-                <Text style={styles.loginButtonText}>Login</Text>
+                <Text style={styles.loginButtonText}>Iniciar sessão</Text>
               )}
             </TouchableOpacity>
 
             {/* Sign Up Footer */}
             <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Don´t have an account yet? </Text>
+              <Text style={styles.footerText}>Ainda não tem uma conta? </Text>
               <TouchableOpacity onPress={() => router.push('/sign-up')}>
-                <Text style={styles.signupText}>Sign up</Text>
+                <Text style={styles.signupText}>Criar conta</Text>
               </TouchableOpacity>
             </View>
 

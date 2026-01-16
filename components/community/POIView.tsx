@@ -62,7 +62,7 @@ export default function POIView() {
         .order('likes_count', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar POIs:', error.message);
+        console.error('Erro ao procurar locais:', error.message);
       } else {
         setPois(data || []);
       }
@@ -74,14 +74,14 @@ export default function POIView() {
   };
 
   const handleSuggestPOI = () => {
-    console.log("Navegar para sugerir POI");
+    console.log("Navegar para sugerir local");
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primaryOrange} />
-        <Text style={styles.loadingText}>Loading popular spots...</Text>
+        <Text style={styles.loadingText}>A carregar locais populares...</Text>
       </View>
     );
   }
@@ -90,13 +90,13 @@ export default function POIView() {
     <View style={styles.container}>
       {/* Sub-Header com Filtro e Botão de Sugerir */}
       <View style={styles.subHeaderRow}>
-        <Text style={styles.subHeaderTitle}>Popular Spots</Text>
+        <Text style={styles.subHeaderTitle}>Locais Populares</Text>
         
         <View style={styles.actionsRow}>
            {pois.length > 0 && (
             <TouchableOpacity onPress={handleSuggestPOI} style={styles.createMiniBtn}>
               <Plus size={16} color={COLORS.primaryOrange} />
-              <Text style={styles.createMiniText}>Suggest</Text>
+              <Text style={styles.createMiniText}>Sugerir</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity>
@@ -112,9 +112,9 @@ export default function POIView() {
             <MapPin size={48} color={COLORS.primaryGreen} /> 
           </View>
           
-          <Text style={styles.emptyTitle}>No Spots Found</Text>
+          <Text style={styles.emptyTitle}>Não foram encontrados locais</Text>
           <Text style={styles.emptyDesc}>
-            It seems there are no points of interest listed yet. Be the first to share a hidden gem!
+            Parece que ainda não há pontos de interesse listados. Seja o primeiro a compartilhar um tesouro escondido!
           </Text>
 
           <TouchableOpacity 
@@ -123,7 +123,7 @@ export default function POIView() {
             activeOpacity={0.8}
           >
             <Plus size={20} color="white" style={{marginRight: 8}} />
-            <Text style={styles.createMainBtnText}>Suggest a Spot</Text>
+            <Text style={styles.createMainBtnText}>Sugerir um Local</Text>
           </TouchableOpacity>
         </View>
       ) : (

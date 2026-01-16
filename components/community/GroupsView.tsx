@@ -1,19 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  Image, 
-  StyleSheet, 
-  ActivityIndicator, 
-  TouchableOpacity,
-  ScrollView,
-  Dimensions
-} from 'react-native';
 import { Filter, Plus, Users } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { supabase } from '../../lib/supabase'; // Certifica-te que o caminho está correto
 
 // IMPORTA O COMPONENTE QUE JÁ TENS
-import CreateGroupView from './CreateGroupView'; 
+import CreateGroupView from './CreateGroupView';
 
 // --- CORES ---
 const COLORS = { 
@@ -111,7 +110,7 @@ export default function GroupsView() {
         setPage(pageNumber);
       }
     } catch (err) {
-      console.error('Erro ao buscar todos os grupos:', err);
+      console.error('Erro ao procurar todos os grupos:', err);
     } finally {
       if (!reset) setLoadingMore(false);
     }
@@ -132,7 +131,7 @@ export default function GroupsView() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primaryOrange} />
-        <Text style={styles.loadingText}>Loading communities...</Text>
+        <Text style={styles.loadingText}>A carregar comunidades...</Text>
       </View>
     );
   }
@@ -142,10 +141,10 @@ export default function GroupsView() {
     return (
       <View style={styles.container}>
         <View style={styles.subHeaderRow}>
-          <Text style={styles.subHeaderTitle}>Groups</Text>
+          <Text style={styles.subHeaderTitle}>Grupos</Text>
           <TouchableOpacity onPress={handleCreateGroup} style={styles.createMiniBtn}>
               <Plus size={16} color={COLORS.primaryOrange} />
-              <Text style={styles.createMiniText}>Create</Text>
+              <Text style={styles.createMiniText}>Criar</Text>
           </TouchableOpacity>
         </View>
 
@@ -153,9 +152,9 @@ export default function GroupsView() {
           <View style={styles.emptyIconCircle}>
             <Users size={48} color={COLORS.primaryGreen} /> 
           </View>
-          <Text style={styles.emptyTitle}>Find your Squad</Text>
+          <Text style={styles.emptyTitle}>Encontre o seu Grupo</Text>
           <Text style={styles.emptyDesc}>
-            It looks like there are no communities yet. Be the first to start a movement!
+            Parece que ainda não há comunidades. Seja o primeiro a fazer um!
           </Text>
           <TouchableOpacity 
             style={styles.createMainBtn}
@@ -163,7 +162,7 @@ export default function GroupsView() {
             activeOpacity={0.8}
           >
             <Plus size={20} color="white" style={{marginRight: 8}} />
-            <Text style={styles.createMainBtnText}>Create a Group</Text>
+            <Text style={styles.createMainBtnText}>Criar um Grupo</Text>
           </TouchableOpacity>
         </View>
 
@@ -184,7 +183,7 @@ export default function GroupsView() {
       {myGroups.length > 0 && (
         <View style={styles.myGroupsSection}>
           <View style={styles.subHeaderRow}>
-            <Text style={styles.subHeaderTitle}>Your Groups</Text>
+            <Text style={styles.subHeaderTitle}>Os Teus Grupos</Text>
             {/* Atalho para criar */}
             <TouchableOpacity onPress={handleCreateGroup}>
                <Plus size={20} color={COLORS.primaryOrange} />
@@ -199,7 +198,7 @@ export default function GroupsView() {
                     style={styles.myGroupImage} 
                   />
                   <Text style={styles.myGroupTitle} numberOfLines={1}>{g.name}</Text>
-                  <Text style={styles.myGroupRole} numberOfLines={1}>Member</Text>
+                  <Text style={styles.myGroupRole} numberOfLines={1}>Membro</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -209,14 +208,14 @@ export default function GroupsView() {
       {/* --- SECÇÃO 2: ALL GROUPS --- */}
       <View style={styles.allGroupsSection}>
         <View style={styles.subHeaderRow}>
-          <Text style={styles.subHeaderTitle}>Discover Groups</Text>
+          <Text style={styles.subHeaderTitle}>Descobrir Grupos</Text>
           
           <View style={styles.actionsRow}>
             {/* Se não tiver grupos meus, o botão de criar aparece aqui como destaque */}
             {myGroups.length === 0 && (
               <TouchableOpacity onPress={handleCreateGroup} style={styles.createMiniBtn}>
                 <Plus size={16} color={COLORS.primaryOrange} />
-                <Text style={styles.createMiniText}>Create</Text>
+                <Text style={styles.createMiniText}>Criar</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity>
@@ -240,7 +239,7 @@ export default function GroupsView() {
                     </Text>
                 </View>
                 <TouchableOpacity style={styles.joinBtn}>
-                   <Text style={styles.joinBtnText}>View</Text>
+                   <Text style={styles.joinBtnText}>Ver</Text>
                 </TouchableOpacity>
               </TouchableOpacity>
           ))}
@@ -256,7 +255,7 @@ export default function GroupsView() {
             {loadingMore ? (
               <ActivityIndicator size="small" color={COLORS.primaryOrange} />
             ) : (
-              <Text style={styles.loadMoreText}>Load More</Text>
+              <Text style={styles.loadMoreText}>Carregar Mais</Text>
             )}
           </TouchableOpacity>
         )}

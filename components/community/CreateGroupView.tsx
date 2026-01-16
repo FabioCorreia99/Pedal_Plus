@@ -1,19 +1,19 @@
+import { Check, Image as ImageIcon, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Modal, 
-  ActivityIndicator, 
+import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
-  ScrollView
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { X, Image as ImageIcon, Check } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase'; // Ajusta o caminho conforme necessário
 
 const COLORS = { 
@@ -59,7 +59,7 @@ export default function CreateGroupView({ visible, onClose, onGroupCreated }: Cr
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        Alert.alert("Error", "You must be logged in to create a group.");
+        Alert.alert("Error", "Tens que fazer iniciar sessão primeiro.");
         setLoading(false);
         return;
       }
@@ -101,15 +101,15 @@ export default function CreateGroupView({ visible, onClose, onGroupCreated }: Cr
         }
         
         // Sucesso total
-        Alert.alert("Success!", "Group created successfully.");
+        Alert.alert("Sucesso!", "Grupo criado com sucesso.");
         resetForm();
         onGroupCreated(); // Atualiza a lista na tela anterior
         onClose(); // Fecha o modal
       }
 
     } catch (error: any) {
-      console.error('Error creating group:', error);
-      Alert.alert("Error", error.message || "Failed to create group.");
+      console.error('Erro ao criar grupo:', error);
+      Alert.alert("Erro", error.message || "Erro ao criar grupo.");
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export default function CreateGroupView({ visible, onClose, onGroupCreated }: Cr
           
           {/* HEADER */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Create Group</Text>
+            <Text style={styles.headerTitle}>Criar Grupo</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <X size={24} color={COLORS.darkText} />
             </TouchableOpacity>
@@ -151,14 +151,14 @@ export default function CreateGroupView({ visible, onClose, onGroupCreated }: Cr
               ) : (
                 <View style={styles.placeholderImage}>
                   <ImageIcon size={40} color={COLORS.textGray} />
-                  <Text style={styles.placeholderText}>No image URL provided</Text>
-                  <Text style={styles.placeholderSubText}>(A random cover will be used)</Text>
+                  <Text style={styles.placeholderText}>Nenhum URL de imagem fornecido</Text>
+                  <Text style={styles.placeholderSubText}>(Será usada uma capa aleatória)</Text>
                 </View>
               )}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Group Photo URL (Optional)</Text>
+              <Text style={styles.label}>URL da Foto do Grupo (Opcional)</Text>
               <TextInput
                 style={styles.input}
                 placeholder="https://..."
@@ -171,10 +171,10 @@ export default function CreateGroupView({ visible, onClose, onGroupCreated }: Cr
 
             {/* FORM FIELDS */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Group Name <Text style={{color: COLORS.error}}>*</Text></Text>
+              <Text style={styles.label}>Nome do Grupo <Text style={{color: COLORS.error}}>*</Text></Text>
               <TextInput
                 style={styles.input}
-                placeholder="e.g. Sunday Morning Riders"
+                placeholder="por exemplo Ciclistas de Lisboa"
                 placeholderTextColor={COLORS.textGray}
                 value={name}
                 onChangeText={setName}
@@ -182,10 +182,10 @@ export default function CreateGroupView({ visible, onClose, onGroupCreated }: Cr
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Description</Text>
+              <Text style={styles.label}>Descrição</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="What is this group about?"
+                placeholder="Do que se trata este grupo?"
                 placeholderTextColor={COLORS.textGray}
                 value={description}
                 onChangeText={setDescription}
@@ -206,7 +206,7 @@ export default function CreateGroupView({ visible, onClose, onGroupCreated }: Cr
               ) : (
                 <>
                   <Check size={20} color="white" style={{marginRight: 8}} />
-                  <Text style={styles.submitBtnText}>Create Community</Text>
+                  <Text style={styles.submitBtnText}>Criar Grupo</Text>
                 </>
               )}
             </TouchableOpacity>

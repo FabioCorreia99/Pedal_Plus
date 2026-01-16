@@ -60,7 +60,7 @@ export default function HomeScreen() {
       };
 
       setOrigin(coords);
-      setOriginLabel('Current Location');
+      setOriginLabel('Localização atual');
     })();
   }, []);
 

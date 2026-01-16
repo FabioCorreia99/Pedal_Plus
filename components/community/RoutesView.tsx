@@ -1,14 +1,13 @@
+import { Clock, Filter, Heart, Map, Plus, Zap } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  Image, 
-  StyleSheet, 
-  ActivityIndicator, 
-  TouchableOpacity, 
-  Dimensions 
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { Filter, Heart, Zap, Clock, Map, Plus } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase'; // Ajusta o caminho se necessário
 
 const COLORS = { 
@@ -50,7 +49,7 @@ export default function RoutesView() {
         .order('likes_count', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar rotas:', error.message);
+        console.error('Erro ao procurar rotas:', error.message);
       } else {
         setRoutes(data || []);
       }
@@ -79,7 +78,7 @@ export default function RoutesView() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primaryOrange} />
-        <Text style={styles.loadingText}>Loading top routes...</Text>
+        <Text style={styles.loadingText}>A carregar as melhores rotas...</Text>
       </View>
     );
   }
@@ -88,13 +87,13 @@ export default function RoutesView() {
     <View style={styles.container}>
       {/* Sub-Header */}
       <View style={styles.subHeaderRow}>
-        <Text style={styles.subHeaderTitle}>Top Routes</Text>
+        <Text style={styles.subHeaderTitle}>Melhores Rotas</Text>
         
         <View style={styles.actionsRow}>
           {routes.length > 0 && (
             <TouchableOpacity onPress={handleCreateRoute} style={styles.createMiniBtn}>
               <Plus size={16} color={COLORS.primaryOrange} />
-              <Text style={styles.createMiniText}>Create</Text>
+              <Text style={styles.createMiniText}>Criar</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity>
@@ -110,9 +109,9 @@ export default function RoutesView() {
             <Zap size={48} color={COLORS.primaryGreen} /> 
           </View>
           
-          <Text style={styles.emptyTitle}>No Routes Yet</Text>
+          <Text style={styles.emptyTitle}>Ainda Não Há Rotas</Text>
           <Text style={styles.emptyDesc}>
-            Be the first to map a path! Create a route and share your favorite cycling trails with the community.
+            Seja o primeiro a criar um percurso! Crie uma rota e partilhe os seus trilhos favoritos com a comunidade.
           </Text>
 
           <TouchableOpacity 
@@ -121,7 +120,7 @@ export default function RoutesView() {
             activeOpacity={0.8}
           >
             <Plus size={20} color="white" style={{marginRight: 8}} />
-            <Text style={styles.createMainBtnText}>Create Route</Text>
+            <Text style={styles.createMainBtnText}>Criar Rota</Text>
           </TouchableOpacity>
         </View>
       ) : (

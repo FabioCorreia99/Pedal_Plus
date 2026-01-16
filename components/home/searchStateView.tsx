@@ -9,6 +9,8 @@ const COLORS = {
 
 type LatLng = { latitude: number; longitude: number };
 
+// TODO: Add recent searches functionality
+
 interface SearchStateProps {
   originRef: RefObject<GooglePlacesAutocompleteRef | null>;
   destinationRef: RefObject<GooglePlacesAutocompleteRef | null>;
@@ -41,7 +43,7 @@ export default function SearchState({
           <LocationSearchInput
             ref={originRef}
             iconColor={COLORS.primaryOrange}
-            placeholder="Origin"
+            placeholder="Origem"
             label={originLabel}
             isSearching={showOriginSearch}
             onSearchToggle={onOriginSearchToggle}
@@ -54,7 +56,7 @@ export default function SearchState({
           <LocationSearchInput
             ref={destinationRef}
             iconColor="#ef4444"
-            placeholder="Destination"
+            placeholder="Destino"
             label={destinationLabel}
             isSearching={showDestinationSearch}
             onSearchToggle={onDestinationSearchToggle}

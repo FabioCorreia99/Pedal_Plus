@@ -209,13 +209,13 @@ export default function SignUpScreen() {
           style={{ flex: 1 }}
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.welcomeText}>Welcome</Text>
+            <Text style={styles.welcomeText}>Bem-vindo</Text>
 
-            <Input label="email address" value={email} onChange={setEmail} />
-            <Input label="username" value={username} onChange={setUsername} />
+            <Input label="endereço de email" value={email} onChange={setEmail} />
+            <Input label="nome de utilizador" value={username} onChange={setUsername} />
 
             <PasswordInput
-              label="password"
+              label="palavra-passe"
               value={password}
               visible={isPasswordVisible}
               toggle={() => setIsPasswordVisible(!isPasswordVisible)}
@@ -223,7 +223,7 @@ export default function SignUpScreen() {
             />
 
             <PasswordInput
-              label="re-type password"
+              label="repetir palavra-passe"
               value={confirmPassword}
               visible={isConfirmPasswordVisible}
               toggle={() =>
@@ -240,14 +240,14 @@ export default function SignUpScreen() {
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.registerButtonText}>Register</Text>
+                <Text style={styles.registerButtonText}>Registar</Text>
               )}
             </TouchableOpacity>
 
             <View style={styles.footer}>
-              <Text>already have an account? </Text>
+              <Text>Já tem uma conta? </Text>
               <TouchableOpacity onPress={() => router.push("/sign-in")}>
-                <Text style={{ color: COLORS.primaryOrange }}>Sign in</Text>
+                <Text style={{ color: COLORS.primaryOrange }}>Iniciar sessão</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

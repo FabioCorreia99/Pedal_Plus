@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 //import InteractiveMap from '../../components/InteractiveMap';
+
+// TODO: GET favorites from db
 
 const COLORS = { primaryGreen: "#5DBD76", primaryOrange: "#FF9E46" };
 

@@ -220,7 +220,7 @@ export default function WelcomeScreen() {
               <Plus color={COLORS.darkText} size={32} strokeWidth={4} style={{ marginTop: 4 }} />
             </View>
             <Text style={styles.subtitle}>
-              Kick off every ride with safer, smarter navigation.
+              Comece cada percurso com navegação mais segura e inteligente.
             </Text>
           </View>
 
@@ -231,7 +231,7 @@ export default function WelcomeScreen() {
               activeOpacity={0.8}
               onPress={() => router.push('./sign-up' as any)}
             >
-              <Text style={styles.primaryButtonText}>Get Started</Text>
+              <Text style={styles.primaryButtonText}>Começar</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -239,7 +239,7 @@ export default function WelcomeScreen() {
               activeOpacity={0.7}
               onPress={() => router.push('./sign-in' as any)}
             >
-              <Text style={styles.secondaryButtonText}>I already have an account</Text>
+              <Text style={styles.secondaryButtonText}>Já tenho uma conta</Text>
               <ChevronRight color={COLORS.primaryOrange} size={20} strokeWidth={2.5} />
             </TouchableOpacity>
 

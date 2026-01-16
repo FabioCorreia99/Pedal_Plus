@@ -95,7 +95,7 @@ export default function LeaderboardModal({ onClose }: { onClose: () => void }) {
       {/* 1. HEADER (Fixo no Topo) */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <Text style={styles.headerTitle}>Leaderboard</Text>
+          <Text style={styles.headerTitle}>Tabela de Classificação</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <X color="white" size={24} />
           </TouchableOpacity>
@@ -209,14 +209,14 @@ export default function LeaderboardModal({ onClose }: { onClose: () => void }) {
                   style={[styles.toggleBtn, timeFrame === 'Weekly' ? styles.toggleBtnActive : null]}
                   onPress={() => setTimeFrame('Weekly')}
                 >
-                   <Text style={[styles.toggleText, timeFrame === 'Weekly' ? styles.toggleTextActive : styles.toggleTextInactive]}>Weekly</Text>
+                   <Text style={[styles.toggleText, timeFrame === 'Weekly' ? styles.toggleTextActive : styles.toggleTextInactive]}>Semanal</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
                   style={[styles.toggleBtn, timeFrame === 'Monthly' ? styles.toggleBtnActive : null]}
                   onPress={() => setTimeFrame('Monthly')}
                 >
-                   <Text style={[styles.toggleText, timeFrame === 'Monthly' ? styles.toggleTextActive : styles.toggleTextInactive]}>Monthly</Text>
+                   <Text style={[styles.toggleText, timeFrame === 'Monthly' ? styles.toggleTextActive : styles.toggleTextInactive]}>Mensal</Text>
                 </TouchableOpacity>
              </View>
  

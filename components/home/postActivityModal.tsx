@@ -114,8 +114,6 @@ export default function PostActivityModal({
     // TODO: Implement post logic
     await supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
-        // Here you would typically send the activity data to your backend
-        console.log('Posting activity for user:', user.id);
         await supabase.from('activities').insert({
           user_id: user.id,
           route_id: routeId,
@@ -147,7 +145,7 @@ export default function PostActivityModal({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Post Activity</Text>
+          <Text style={styles.headerTitle}>Publicar Atividade</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#333" />
           </TouchableOpacity>
@@ -156,13 +154,13 @@ export default function PostActivityModal({
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Duration */}
           <View style={styles.section}>
-            <Text style={styles.label}>Duration</Text>
-            <Text style={styles.valueText}>{durationMinutes} minutes</Text>
+            <Text style={styles.label}>Duração</Text>
+            <Text style={styles.valueText}>{durationMinutes} minutos</Text>
           </View>
 
           {/* When */}
           <View style={styles.section}>
-            <Text style={styles.label}>When</Text>
+            <Text style={styles.label}>Data</Text>
             <Text style={styles.valueText}>{formatDate(completedAt)}</Text>
           </View>
 
@@ -174,28 +172,28 @@ export default function PostActivityModal({
                 <View style={styles.imageIconCircle} />
               </View>
             </View>
-            <Text style={styles.mediaButtonText}>Add a photo/video</Text>
+            <Text style={styles.mediaButtonText}>Adicionar uma foto/vídeo</Text>
           </TouchableOpacity>
 
           {/* Title */}
           <View style={styles.titleContainer}>
             <TextInput
               style={styles.titleInput}
-              placeholder="Title"
+              placeholder="Título"
               multiline
-              maxLength={2000}
+              maxLength={100}
               value={title}
               onChangeText={setTitle}
               textAlignVertical="top"
             />
-            <Text style={styles.charCount}>{title.length}/2000</Text>
+            <Text style={styles.charCount}>{title.length}/100</Text>
           </View>
 
           {/* Description */}
           <View style={styles.descriptionContainer}>
             <TextInput
               style={styles.descriptionInput}
-              placeholder="Description"
+              placeholder="Descrição"
               multiline
               maxLength={2000}
               value={description}
@@ -215,7 +213,7 @@ export default function PostActivityModal({
               );
             }}
           >
-            <Text style={styles.visibilityLabel}>Visibility</Text>
+            <Text style={styles.visibilityLabel}>Visibilidade</Text>
             <Text style={styles.visibilityValue}>{getVisibilityLabel()} ›</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -223,7 +221,7 @@ export default function PostActivityModal({
         {/* Post Button */}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.postButton} onPress={handlePost}>
-            <Text style={styles.postButtonText}>Post</Text>
+            <Text style={styles.postButtonText}>Publicar</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -238,7 +236,7 @@ export default function PostActivityModal({
                 setTempPhotoUri(null);
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 16 }}>Back</Text>
+              <Text style={{ color: '#fff', fontSize: 16 }}>Voltar</Text>
             </TouchableOpacity>
           </View>
 
@@ -327,7 +325,7 @@ export default function PostActivityModal({
               }}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
-                Done
+                Confirmar
               </Text>
             </TouchableOpacity>
           </View>

@@ -240,7 +240,7 @@ export default function NavigatingState({
 
         <View style={{ alignItems: 'center' }}>
           <View style={{ marginBottom: 4, justifyContent: 'center' }}>
-            <Text style={{ color: '#9ca3af', fontWeight: 'bold', fontSize: 12 }}>Est. Arrival</Text>
+            <Text style={{ color: '#9ca3af', fontWeight: 'bold', fontSize: 12 }}>Est. Chegada</Text>
             <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{arrivalTimeStr}</Text>
           </View>
           <Text style={{ color: '#9ca3af', fontWeight: 'bold', fontSize: 12 }}>

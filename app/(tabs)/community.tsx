@@ -1,33 +1,30 @@
+import {
+  Calendar,
+  ChevronRight,
+  Home,
+  MessageCircle,
+  Zap
+} from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  TextInput,
-  Platform,
-  StatusBar,
   Dimensions,
-  Modal
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { 
-  Home, 
-  Calendar, 
-  MessageCircle, 
-  Zap, 
-  ChevronRight,
-  Star,
-  ArrowRight
-} from 'lucide-react-native';
 
 // --- IMPORTAÇÃO DOS COMPONENTES DA COMUNIDADE ---
-import TrendingView from '../../components/community/TrendingView';
 import GroupsView from '../../components/community/GroupsView';
-import RoutesView from '../../components/community/RoutesView';
-import POIView from '../../components/community/POIView';
 import LeaderboardModal from '../../components/community/LeaderboardView';
+import POIView from '../../components/community/POIView';
+import RoutesView from '../../components/community/RoutesView';
+import TrendingView from '../../components/community/TrendingView';
 
 // --- CONSTANTES E CORES ---
 const COLORS = {
@@ -90,7 +87,7 @@ export default function CommunityScreen() {
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryGreen} />
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Community</Text>
+          <Text style={styles.headerTitle}>Comunidade</Text>
         </View>
       </SafeAreaView>
 
@@ -112,12 +109,12 @@ export default function CommunityScreen() {
                {activeCategory === 'Trending' ? (
                   <View style={styles.headerRowTrending}>
                      <View style={styles.headerTextContainer}>
-                        <Text style={styles.discoverTitle}>Discover</Text>
-                        <Text style={styles.discoverDesc}>Dive into community-driven insights with trending routes, hotspots and people to ride with.</Text>
+                        <Text style={styles.discoverTitle}>Explorar</Text>
+                        <Text style={styles.discoverDesc}>Descubra rotas em alta, locais populares e outros ciclistas da comunidade.</Text>
                      </View>
                      
                      <TouchableOpacity onPress={() => setShowLeaderboard(true)} style={styles.leaderboardWidget}>
-                        <Text style={styles.leaderboardLabel}>Leaderboard</Text>
+                        <Text style={styles.leaderboardLabel}>Tabela de Classificação</Text>
                         {renderPodiumGraphic()}
                      </TouchableOpacity>
                   </View>
@@ -133,7 +130,7 @@ export default function CommunityScreen() {
             <View style={styles.searchContainer}>
               <View style={styles.searchBox}>
                 <TextInput 
-                  placeholder="Search..." 
+                  placeholder="Procurar..." 
                   placeholderTextColor="#9ca3af" 
                   style={styles.searchInput} 
                   editable={false}
@@ -146,10 +143,10 @@ export default function CommunityScreen() {
 
             {/* Filtros */}
             <View style={styles.filtersRow}>
-               <FilterButton id="Trending" label="Trending" icon={Home} />
-               <FilterButton id="POI" label="POI" icon={Calendar} />
-               <FilterButton id="Groups" label="Groups" icon={MessageCircle} />
-               <FilterButton id="Routes" label="Routes" icon={Zap} />
+               <FilterButton id="Trending" label="Populares" icon={Home} />
+               <FilterButton id="POI" label="Locais" icon={Calendar} />
+               <FilterButton id="Groups" label="Grupos" icon={MessageCircle} />
+               <FilterButton id="Routes" label="Rotas" icon={Zap} />
             </View>
 
             {/* Conteúdo das Views */}
