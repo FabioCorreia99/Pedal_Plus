@@ -1,15 +1,15 @@
 import LocationSearchInput from '@/components/home/locationSearchInput';
-import React, { RefObject } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { getRecentRoutes, removeRecentRouteById } from '@/lib/recentRoutes';
+import React, { RefObject, useEffect } from 'react';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
+import { SwipeListView } from 'react-native-swipe-list-view';
 
 const COLORS = {
   primaryOrange: "#FF9E46",
 };
 
 type LatLng = { latitude: number; longitude: number };
-
-// TODO: Add recent searches functionality
 
 interface SearchStateProps {
   originRef: RefObject<GooglePlacesAutocompleteRef | null>;
@@ -36,6 +36,49 @@ export default function SearchState({
   onOriginSelect,
   onDestinationSelect,
 }: SearchStateProps) {
+
+  const SCREEN_WIDTH: number = Dimensions.get('window').width;
+  const SWIPE_WIDTH: number = SCREEN_WIDTH * 0.2; // 20% swipe area
+
+  const [routes, setRoutes] = React.useState<Array<{
+    id: string;
+    originLabel: string;
+    destinationLabel: string;
+    origin: { latitude: number; longitude: number };
+    destination: { latitude: number; longitude: number };
+    distanceMeters: number;
+    durationMinutes: number;
+    timestamp: string;
+    thumbnailUrl?: string;
+  }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      const routes = await getRecentRoutes();
+      setRoutes(routes);
+    })();
+  }, []);
+
+  const handleRecentRoutePress = (route: {
+    id: string;
+    originLabel: string;
+    destinationLabel: string;
+    origin: { latitude: number; longitude: number };
+    destination: { latitude: number; longitude: number };
+    distanceMeters: number;
+    durationMinutes: number;
+    timestamp: string;
+    thumbnailUrl?: string;
+  }) => {
+    onOriginSelect(route.origin, route.originLabel);
+    onDestinationSelect(route.destination, route.destinationLabel);
+  };
+
+  const handleDeleteRoute = async (id: string) => {
+    await removeRecentRouteById(id);
+    setRoutes(prev => prev.filter(r => r.id !== id));
+  };
+
   return (
     <View style={[styles.bottomSheet, { height: '55%' }]}>
       <View style={{ paddingHorizontal: 24, marginTop: -30 }}>
@@ -47,9 +90,7 @@ export default function SearchState({
             label={originLabel}
             isSearching={showOriginSearch}
             onSearchToggle={onOriginSearchToggle}
-            onLocationSelect={(coords, description) => {
-              onOriginSelect(coords, description);
-            }}
+            onLocationSelect={(coords, description) => onOriginSelect(coords, description)}
             showCurrentLocationButton={true}
           />
 
@@ -60,31 +101,52 @@ export default function SearchState({
             label={destinationLabel}
             isSearching={showDestinationSearch}
             onSearchToggle={onDestinationSearchToggle}
-            onLocationSelect={(coords, description) => {
-              onDestinationSelect(coords, description);
-            }}
+            onLocationSelect={(coords, description) => onDestinationSelect(coords, description)}
           />
         </View>
       </View>
 
-      <ScrollView style={{ flex: 1, padding: 24 }}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>Rotas Recentes</Text>
-        {[1, 2].map(i => (
+      <SwipeListView
+        data={routes}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
           <TouchableOpacity
-            key={i}
-            style={{ flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#f3f4f6' }}
+            style={styles.routeItem}
+            onPress={() => handleRecentRoutePress(item)}
           >
-            <Image
-              source={{ uri: `https://source.unsplash.com/random/100x100?road,${i}` }}
-              style={{ width: 56, height: 56, borderRadius: 28, marginRight: 16 }}
-            />
-            <View>
-              <Text style={{ fontWeight: 'bold' }}>Casa ••• Trabalho</Text>
-              <Text style={{ color: '#999', fontSize: 12 }}>13km • 17min</Text>
+            <View style={styles.routeIcon}>
+              <Text style={{ fontSize: 24 }}>📍</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: 'bold' }} numberOfLines={1}>
+                {item.originLabel} → {item.destinationLabel}
+              </Text>
+              <Text style={{ color: '#999', fontSize: 12 }}>
+                {(item.distanceMeters / 1000).toFixed(1)}km • {item.durationMinutes}min
+              </Text>
             </View>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+        )}
+        renderHiddenItem={({ item }) => (
+          <View
+            style={[
+              styles.deleteButtonContainer,
+              { width: SCREEN_WIDTH * 0.2 } // 20% of screen width
+            ]}
+          >
+            <Text style={styles.deleteButtonText}>🗑️</Text>
+          </View>
+        )}
+        rightOpenValue={-SWIPE_WIDTH} // swipe threshold
+        stopRightSwipe={-SWIPE_WIDTH}
+        onRowOpen={(rowKey) => handleDeleteRoute(rowKey.toString())}
+        ListEmptyComponent={() => (
+          <Text style={{ color: '#9ca3af', textAlign: 'center', marginTop: 32 }}>
+            Nenhuma rota recente
+          </Text>
+        )}
+        contentContainerStyle={{ paddingHorizontal: 24 }}
+      />
     </View>
   );
 }
@@ -99,5 +161,38 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'white', borderRadius: 16, padding: 16,
     elevation: 5, borderWidth: 1, borderColor: '#f3f4f6'
+  },
+  routeItem: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#f3f4f6',
+    backgroundColor: 'white',
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginVertical: 4,
+  },
+  routeIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 16,
+    backgroundColor: '#FF9E46',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  deleteButtonContainer: {
+    backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    marginVertical: 4,
+    height: '91%',  
+    position: 'absolute',   
+    right: 0,                
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 24,
   },
 });

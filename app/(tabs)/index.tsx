@@ -1,4 +1,5 @@
 import InteractiveMap from '@/components/InteractiveMap';
+import { saveRecentRoute } from '@/lib/recentRoutes';
 import { getCurrentStep, remainingDistanceMeters } from '@/services/navigationCalculations';
 import * as Location from 'expo-location';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -59,8 +60,11 @@ export default function HomeScreen() {
         longitude: loc.coords.longitude,
       };
 
+      const [address] = await Location.reverseGeocodeAsync(coords);
+      const label = [address.name, address.street, address.city].filter(Boolean).join(', ') || 'Localização atual';
+
       setOrigin(coords);
-      setOriginLabel('Localização atual');
+      setOriginLabel(label);
     })();
   }, []);
 
@@ -80,34 +84,35 @@ export default function HomeScreen() {
     }
   };
 
-  const handleRouteComplete = useCallback(() => {
-    console.log('handleRouteComplete called', {
-      hasCompleted: hasCompletedRoute.current,
-      routeStartTime,
-    });
+  const handleRouteComplete = useCallback(async () => {
 
-    // Prevent multiple triggers
-    if (hasCompletedRoute.current) {
-      console.log('Route already completed, skipping');
-      return;
-    }
-
-    if (!routeStartTime) {
-      console.log('No route start time, skipping');
-      return;
-    }
+    if (hasCompletedRoute.current) return;
+    if (!routeStartTime || !origin || !destination) return;
 
     hasCompletedRoute.current = true;
+
     const completedAt = new Date();
     const durationMs = completedAt.getTime() - routeStartTime.getTime();
     const durationMinutes = Math.ceil(durationMs / 60000);
+
+    // Save recent route in local storage
+    await saveRecentRoute({
+      originLabel,
+      destinationLabel,
+      origin,
+      destination,
+      distanceMeters: routeMeta.distanceMeters ?? 0,
+      durationMinutes,
+      thumbnailUrl: undefined, // optional for now
+    });
 
     setRouteCompletionData({
       durationMinutes,
       completedAt,
     });
+
     setShowPostModal(true);
-  }, [routeStartTime]);
+  }, [routeStartTime, origin, destination, originLabel, destinationLabel, routeMeta.distanceMeters]);
 
   const handleClosePostModal = () => {
     setShowPostModal(false);
