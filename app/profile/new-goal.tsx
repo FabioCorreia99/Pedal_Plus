@@ -2,13 +2,14 @@ import { useRouter } from "expo-router";
 import { ChevronDown, X } from "lucide-react-native";
 import React, { useState } from "react";
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { supabase } from "../../lib/supabase";
 
 const COLORS = {
   green: "#5DBD76",
@@ -19,33 +20,77 @@ const COLORS = {
 };
 
 const GOAL_TYPES = [
-  "Duração",
-  "Distância",
-  "Calorias",
-  "Frequência",
-  "Impacto Ecológico",
+  { label: "Distância", value: "distance" },
+  { label: "Calorias", value: "calories" },
+  { label: "Frequência", value: "frequency" },
+  { label: "Impacto Ecológico", value: "eco_impact" },
 ];
 
-const PERIODS = ["Dia", "Semana", "Mês"];
+
+const PERIODS = [
+  { label: "Dia", value: "daily" },
+  { label: "Semana", value: "weekly" },
+  { label: "Mês", value: "monthly" },
+];
 
 export default function NewGoalScreen() {
   const router = useRouter();
 
-  const [goalType, setGoalType] = useState("Duração");
-  const [period, setPeriod] = useState("Dia");
+  const [goalType, setGoalType] = useState(GOAL_TYPES[0]);
+  const [period, setPeriod] = useState(PERIODS[0]);
   const [value, setValue] = useState("600");
 
   const [showTypeOptions, setShowTypeOptions] = useState(false);
   const [showPeriodOptions, setShowPeriodOptions] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!value) {
       Alert.alert("Erro", "Define um valor para o objetivo.");
       return;
     }
 
-    Alert.alert("Objetivo criado", "O novo objetivo foi definido com sucesso.");
-    router.back();
+    try {
+      // 1. User autenticado
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        Alert.alert("Erro", "Utilizador não autenticado.");
+        return;
+      }
+
+      // 2. Datas
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+
+      if (period.value === "daily") endDate.setDate(endDate.getDate() + 1);
+      if (period.value === "weekly") endDate.setDate(endDate.getDate() + 7);
+      if (period.value === "monthly") endDate.setMonth(endDate.getMonth() + 1);
+
+      // 3. Inserir goal
+      const { error } = await supabase.from("user_goals").insert({
+        user_id: user.id,
+        metric: goalType.value, // ex: "calorias" → "calorias"
+        duration: period.value, // dia | semana | mês
+        target_value: Number(value),
+        current_value: 0,
+        status: "active",
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+      });
+
+      if (error) {
+        Alert.alert("Erro", error.message);
+        return;
+      }
+
+      Alert.alert("Sucesso", "Objetivo criado com sucesso.");
+      router.back();
+    } catch (err) {
+      Alert.alert("Erro", "Ocorreu um erro inesperado.");
+    }
   };
 
   return (
@@ -72,7 +117,7 @@ export default function NewGoalScreen() {
               setShowPeriodOptions(false);
             }}
           >
-            <Text style={styles.selectText}>{goalType}</Text>
+            <Text style={styles.selectText}>{goalType.label}</Text>
             <ChevronDown size={18} color="#555" />
           </TouchableOpacity>
 
@@ -80,14 +125,14 @@ export default function NewGoalScreen() {
             <View style={styles.dropdown}>
               {GOAL_TYPES.map((type) => (
                 <TouchableOpacity
-                  key={type}
+                  key={type.value}
                   style={styles.option}
                   onPress={() => {
                     setGoalType(type);
                     setShowTypeOptions(false);
                   }}
                 >
-                  <Text style={styles.optionText}>{type}</Text>
+                  <Text style={styles.optionText}>{type.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -111,7 +156,7 @@ export default function NewGoalScreen() {
               setShowTypeOptions(false);
             }}
           >
-            <Text style={styles.selectText}>{period}</Text>
+            <Text style={styles.selectText}>{period.label}</Text>
             <ChevronDown size={18} color="#555" />
           </TouchableOpacity>
 
@@ -119,14 +164,14 @@ export default function NewGoalScreen() {
             <View style={styles.dropdown}>
               {PERIODS.map((p) => (
                 <TouchableOpacity
-                  key={p}
+                  key={p.value}
                   style={styles.option}
                   onPress={() => {
                     setPeriod(p);
                     setShowPeriodOptions(false);
                   }}
                 >
-                  <Text style={styles.optionText}>{p}</Text>
+                  <Text style={styles.optionText}>{p.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>

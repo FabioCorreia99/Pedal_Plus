@@ -199,7 +199,7 @@ export default function ProfileScreen() {
 
           {/* DASHBOARD */}
           <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
-            <Text style={styles.sectionTitle}>Dashboard</Text>
+            <Text style={styles.sectionTitle}>Painel</Text>
 
             <View style={{ flexDirection: "row", gap: 16 }}>
               <TouchableOpacity

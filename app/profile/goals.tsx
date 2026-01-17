@@ -1,13 +1,14 @@
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { supabase } from "../../lib/supabase";
 
 const COLORS = {
   green: "#5DBD76",
@@ -17,8 +18,69 @@ const COLORS = {
   muted: "#666",
 };
 
+const metricLabelMap: Record<string, string> = {
+  duracao: "Duração",
+  distância: "Distância",
+  calorias: "Calorias",
+  frequência: "Frequência",
+  impacto_ecológico: "Impacto Ecológico",
+};
+
+const metricUnitMap: Record<string, string> = {
+  duracao: "min",
+  distância: "km",
+  calorias: "cal",
+  frequência: "x",
+  impacto_ecológico: "pts",
+};
+
+
+interface UserGoal {
+  id: string;
+  metric: string;
+  duration: string;
+  target_value: number;
+  current_value: number;
+}
+
 export default function GoalsScreen() {
   const router = useRouter();
+  const [goals, setGoals] = useState<UserGoal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGoals();
+  }, []);
+
+  const fetchGoals = async () => {
+    try {
+      setLoading(true);
+
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) return;
+
+      const { data, error } = await supabase
+        .from("user_goals")
+        .select("id, metric, duration, target_value, current_value")
+        .eq("user_id", user.id)
+        .eq("status", "active");
+
+      if (error) {
+        console.error(error.message);
+        return;
+      }
+
+      setGoals(data ?? []);
+    } catch (err) {
+      console.error("Erro a buscar goals", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.green }}>
@@ -33,52 +95,56 @@ export default function GoalsScreen() {
       {/* Content */}
       <View style={styles.content}>
         <ScrollView contentContainerStyle={{ padding: 24 }}>
-          {/* Weekly Progress */}
+          {/* weeklyly Progress */}
           <View style={styles.progressCard}>
             <Text style={styles.hello}>Olá, Georg</Text>
             <Text style={styles.subtitle}>Progresso desta semana</Text>
 
-            <ProgressRow
-              label="Calorias"
-              value="1,240 / 2,000 cal"
-              percent={62}
-              color="#8DD4A4"
-            />
-            <ProgressRow
-              label="Distância"
-              value="172 / 300 km"
-              percent={57}
-              color="#FFB877"
-            />
-            <ProgressRow
-              label="Percursos"
-              value="5 / 8 percursos"
-              percent={62}
-              color="#9EF0E6"
-            />
+            {loading ? (
+  <Text>A carregar...</Text>
+) : (
+  goals.map((goal) => {
+    const percent =
+      goal.target_value > 0
+        ? Math.min(
+            Math.round((goal.current_value / goal.target_value) * 100),
+            100
+          )
+        : 0;
+
+    return (
+      <ProgressRow
+        key={goal.id}
+        label={metricLabelMap[goal.metric] ?? goal.metric}
+        value={`${goal.current_value} / ${goal.target_value} ${
+          metricUnitMap[goal.metric] ?? ""
+        }`}
+        percent={percent}
+        color="#8DD4A4"
+      />
+    );
+  })
+)}
+
           </View>
 
           {/* Goals List */}
-          <Text style={styles.sectionTitle}>Configuração dos seus objetivos</Text>
+          <Text style={styles.sectionTitle}>
+            Configuração dos seus objetivos
+          </Text>
 
-          <GoalRow
-            icon="🔥"
-            label="Calorias a queimar"
-            value="2,000 cal"
-            period="5 dias"
-          />
-          <GoalRow
-            icon="🚴"
-            label="Distância a percorrer"
-            value="300 km"
-            period="7 dias"
-          />
-          <GoalRow
-            icon="🏆"
-            label="Passeios concluídos"
-            value="8 percursos"
-            period="por semana"
-          />
+{goals.map((goal) => (
+  <GoalRow
+    key={goal.id}
+    icon="🎯"
+    label={metricLabelMap[goal.metric] ?? goal.metric}
+    value={`${goal.target_value} ${
+      metricUnitMap[goal.metric] ?? ""
+    }`}
+    period={goal.duration}
+  />
+))}
+
 
           {/* CTA */}
           <TouchableOpacity
