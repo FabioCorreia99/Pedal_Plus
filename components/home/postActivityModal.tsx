@@ -24,6 +24,7 @@ interface PostActivityModalProps {
   completedAt: Date;
   routeId?: string | null;
   distanceKm?: number;
+  onConfirmPhoto?: (uri: string) => void;
 }
 
 export default function PostActivityModal({
@@ -33,10 +34,11 @@ export default function PostActivityModal({
   completedAt,
   distanceKm,
   routeId,
+  onConfirmPhoto,
 }: PostActivityModalProps) {
   const [description, setDescription] = useState('');
   const [title, setTitle] = useState('');
-  const [visibility, setVisibility] = useState<'everyone' | 'friends' | 'private'>('everyone');
+  const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoPreviewVisible, setPhotoPreviewVisible] = useState(false);
   const [tempPhotoUri, setTempPhotoUri] = useState<string | null>(null);
@@ -69,8 +71,8 @@ export default function PostActivityModal({
 
   const getVisibilityLabel = () => {
     switch (visibility) {
-      case 'everyone':
-        return 'Everyone';
+      case 'public':
+        return 'Public';
       case 'friends':
         return 'Friends only';
       case 'private':
@@ -90,7 +92,7 @@ export default function PostActivityModal({
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'], // <-- use string(s) here
         quality: 1,
       });
 
@@ -209,7 +211,7 @@ export default function PostActivityModal({
             onPress={() => {
               // Cycle through visibility options
               setVisibility((prev) =>
-                prev === 'everyone' ? 'friends' : prev === 'friends' ? 'private' : 'everyone'
+                prev === 'public' ? 'friends' : prev === 'friends' ? 'private' : 'public'
               );
             }}
           >
@@ -232,8 +234,12 @@ export default function PostActivityModal({
           <View style={{ paddingTop: 60, paddingHorizontal: 16, paddingBottom: 16 }}>
             <TouchableOpacity
               onPress={() => {
+                setPhotoUri(tempPhotoUri)
                 setPhotoPreviewVisible(false);
                 setTempPhotoUri(null);
+                if (onConfirmPhoto && tempPhotoUri) {
+                  onConfirmPhoto(tempPhotoUri);
+                }
               }}
             >
               <Text style={{ color: '#fff', fontSize: 16 }}>Voltar</Text>
@@ -319,9 +325,13 @@ export default function PostActivityModal({
                 alignItems: 'center',
               }}
               onPress={() => {
+                if (onConfirmPhoto && tempPhotoUri) {
+                  onConfirmPhoto(tempPhotoUri); // <- pass photo back to HomeScreen
+                }
                 setPhotoUri(tempPhotoUri);
                 setPhotoPreviewVisible(false);
                 setTempPhotoUri(null);
+                onClose(); // close modal
               }}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>

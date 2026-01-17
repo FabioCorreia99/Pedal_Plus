@@ -47,6 +47,7 @@ export default function HomeScreen() {
   const originRef = useRef<GooglePlacesAutocompleteRef>(null);
   const destinationRef = useRef<GooglePlacesAutocompleteRef>(null);
   const hasCompletedRoute = useRef(false); // Add this to prevent multiple triggers
+  const [recentPhotoUri, setRecentPhotoUri] = useState<string | null>(null);
 
   useEffect(() => {
     // Get current location on mount, set as origin in search state input
@@ -103,7 +104,7 @@ export default function HomeScreen() {
       destination,
       distanceMeters: routeMeta.distanceMeters ?? 0,
       durationMinutes,
-      thumbnailUrl: undefined, // optional for now
+      thumbnailUrl: recentPhotoUri ?? undefined, // Could implement map snapshot later
     });
 
     setRouteCompletionData({
@@ -114,8 +115,11 @@ export default function HomeScreen() {
     setShowPostModal(true);
   }, [routeStartTime, origin, destination, originLabel, destinationLabel, routeMeta.distanceMeters]);
 
-  const handleClosePostModal = () => {
+  const handleClosePostModal = async () => {
     setShowPostModal(false);
+    // TODO: Wait for recentPhotoUri to be set without using setTimeout
+    setTimeout(() => {
+    }, 300);
     resetInputs();
   };
 
@@ -311,6 +315,22 @@ export default function HomeScreen() {
           distanceKm={
             routeMeta.distanceMeters ? routeMeta.distanceMeters / 1000 : undefined
           }
+          onConfirmPhoto={async (uri) => {
+            if (!origin || !destination) return;
+            // Save the route only AFTER the photo is confirmed
+            await saveRecentRoute({
+              originLabel,
+              destinationLabel,
+              origin,
+              destination,
+              distanceMeters: routeMeta.distanceMeters ?? 0,
+              durationMinutes: routeCompletionData.durationMinutes,
+              thumbnailUrl: uri, // <- guaranteed to exist now
+            });
+
+            // optionally update local state to show it immediately
+            setRecentPhotoUri(uri);
+          }}
         />
       )}
     </View>

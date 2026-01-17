@@ -1,7 +1,7 @@
 import LocationSearchInput from '@/components/home/locationSearchInput';
 import { getRecentRoutes, removeRecentRouteById } from '@/lib/recentRoutes';
 import React, { RefObject, useEffect } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 import { SwipeListView } from 'react-native-swipe-list-view';
 
@@ -114,11 +114,19 @@ export default function SearchState({
             style={styles.routeItem}
             onPress={() => handleRecentRoutePress(item)}
           >
-            <View style={styles.routeIcon}>
-              <Text style={{ fontSize: 24 }}>📍</Text>
-            </View>
+            {item.thumbnailUrl ? (
+              <Image
+                source={{ uri: item.thumbnailUrl }}
+                style={{ width: 56, height: 56, borderRadius: 28, marginRight: 16 }}
+              />
+            ) : (
+              <View style={styles.routeIcon}>
+                <Text style={{ fontSize: 24 }}>📍</Text>
+              </View>
+            )}
+
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: 'bold' }} numberOfLines={1}>
+              <Text style={{ fontWeight: '300', fontSize: 14 }} numberOfLines={1}>
                 {item.originLabel} → {item.destinationLabel}
               </Text>
               <Text style={{ color: '#999', fontSize: 12 }}>
