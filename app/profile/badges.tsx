@@ -1,71 +1,156 @@
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import { getAvatarByLevel } from "../../constants/avatars";
-import { getUserLevel } from "../../constants/levels";
+import { getAvatarForLevel } from "../../constants/avatars";
+import { supabase } from "../../lib/supabase";
 
-// Mock data
-const ecoPoints = 730;
-const userLevel = getUserLevel(ecoPoints);
+/* ---------- COLORS ---------- */
 
 const COLORS = {
   primaryGreen: "#5DBD76",
-  primaryOrange: "#FF9E46",
-  darkText: "#1A1A1A",
   teal: "#35C2C1",
   gray: "#F5F7F8",
-  locked: "#CBD5E1",
+  darkText: "#1A1A1A",
 };
 
-type Badge = {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  unlocked: boolean;
-};
+/* ---------- BADGES (definidos pela app) ---------- */
 
-const BADGES: Badge[] = [
+export const BADGES = [
   {
-    id: "first-ride",
+    id: 1,
     title: "Primeira Volta",
     description: "Concluíste a tua primeira rota.",
     icon: "🚴",
-    unlocked: true,
   },
   {
-    id: "ten-rides",
+    id: 2,
     title: "10 Rotas",
     description: "Completaste 10 rotas.",
     icon: "🛣️",
-    unlocked: true,
   },
   {
-    id: "fifty-km",
+    id: 3,
     title: "50 km",
     description: "Percorreste 50 km no total.",
     icon: "📍",
-    unlocked: false,
   },
   {
-    id: "hundred-km",
+    id: 4,
     title: "100 km",
     description: "Percorreste 100 km no total.",
     icon: "🏁",
-    unlocked: false,
   },
 ];
 
+/* ---------- COMPONENT ---------- */
+
 export default function BadgesScreen() {
   const router = useRouter();
+
+  const [ecoPoints, setEcoPoints] = useState(0);
+  const [userLevel, setUserLevel] = useState(1);
+  const [userBadgeIds, setUserBadgeIds] = useState<number[]>([]);
+  const [progressPercent, setProgressPercent] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+
+  /* ---------- FETCH DATA ---------- */
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+
+      // User autenticado
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Perfil (XP + nível atual)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("total_points, current_level_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile) {
+        setLoading(false);
+        return;
+      }
+
+      const xp = profile.total_points ?? 0;
+      const levelId = profile.current_level_id ?? 1;
+
+      setEcoPoints(xp);
+      setUserLevel(levelId);
+
+      // Badges desbloqueados
+      const { data: earnedBadges } = await supabase
+        .from("user_badges")
+        .select("badge_id")
+        .eq("user_id", user.id);
+
+      setUserBadgeIds(earnedBadges?.map((b) => b.badge_id) ?? []);
+
+      // Calcular progresso do nível
+      const { data: levels } = await supabase
+        .from("levels")
+        .select("id, level_number, xp_required")
+        .order("level_number", { ascending: true });
+
+      if (!levels) {
+        setProgressPercent(0);
+        setLoading(false);
+        return;
+      }
+
+      const currentLevel = levels.find((l) => l.id === levelId);
+
+      // próximo nível (se existir)
+      const nextLevel = levels.find(
+        (l) => l.level_number === (currentLevel?.level_number ?? 1) + 1,
+      );
+
+      // último nível → 100%
+      if (!currentLevel || !nextLevel) {
+        setProgressPercent(1);
+      } else {
+        const progress =
+          (xp - currentLevel.xp_required) /
+          (nextLevel.xp_required - currentLevel.xp_required);
+
+        setProgressPercent(Math.min(Math.max(progress, 0), 1));
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  /* ---------- LOADING ---------- */
+
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <Text>A carregar badges…</Text>
+      </View>
+    );
+  }
+
+  /* ---------- UI ---------- */
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.primaryGreen }}>
@@ -80,70 +165,83 @@ export default function BadgesScreen() {
       {/* Content */}
       <View style={styles.content}>
         <ScrollView contentContainerStyle={{ padding: 24 }}>
-          {/* ===== PROFILE PROGRESS (TOPO) ===== */}
+          {/* ===== PROFILE ===== */}
           <View style={styles.profileProgress}>
             <View style={styles.avatarWrapper}>
               <Image
-                source={getAvatarByLevel(userLevel)}
+                source={getAvatarForLevel(userLevel)}
                 style={styles.bigAvatar}
               />
             </View>
 
-            <Text style={styles.profileName}>Georg</Text>
+            <Text style={styles.profileName}>Perfil</Text>
 
             <View style={styles.levelRow}>
               <Text style={styles.levelText}>
                 <Text style={{ fontWeight: "bold" }}>{userLevel}</Text> Pedal
                 Level
               </Text>
-
               <Text style={styles.levelDivider}>|</Text>
               <Text style={styles.levelText}>
-                <Text style={{ fontWeight: "bold" }}>{ecoPoints}</Text> Eco
-                Points
+                <Text style={{ fontWeight: "bold" }}>
+                  {ecoPoints.toFixed(0)}
+                </Text>{" "}
+                Eco Points
               </Text>
             </View>
 
+            {/* Progress Bar */}
             <View style={styles.progressContainer}>
               <View style={styles.progressBarBackground}>
-                <View style={[styles.progressBarFill, { width: "72%" }]} />
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${Math.round(progressPercent * 100)}%` },
+                  ]}
+                />
               </View>
-              <Text style={styles.progressText}>Level up · 72%</Text>
+              <Text style={styles.progressText}>
+                Próximo nível · {Math.round(progressPercent * 100)}%
+              </Text>
             </View>
           </View>
 
-          {/* ===== BADGES LIST ===== */}
-          {BADGES.map((badge) => (
-            <View
-              key={badge.id}
-              style={[styles.badgeCard, !badge.unlocked && styles.badgeLocked]}
-            >
-              <Text style={styles.badgeIcon}>{badge.icon}</Text>
+          {/* ===== BADGES ===== */}
+          {BADGES.map((badge) => {
+            const unlocked = userBadgeIds.includes(badge.id);
 
-              <View style={{ flex: 1 }}>
+            return (
+              <View
+                key={badge.id}
+                style={[styles.badgeCard, !unlocked && styles.badgeLocked]}
+              >
+                <Text style={styles.badgeIcon}>{badge.icon}</Text>
+
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.badgeTitle,
+                      !unlocked && { color: "#94a3b8" },
+                    ]}
+                  >
+                    {badge.title}
+                  </Text>
+                  <Text style={styles.badgeDescription}>
+                    {badge.description}
+                  </Text>
+                </View>
+
                 <Text
                   style={[
-                    styles.badgeTitle,
-                    !badge.unlocked && { color: "#94a3b8" },
+                    styles.badgeStatus,
+                    unlocked ? { color: COLORS.teal } : { color: "#94a3b8" },
                   ]}
                 >
-                  {badge.title}
+                  {unlocked ? "Desbloqueado" : "Bloqueado"}
                 </Text>
-                <Text style={styles.badgeDescription}>{badge.description}</Text>
               </View>
-
-              <Text
-                style={[
-                  styles.badgeStatus,
-                  badge.unlocked
-                    ? { color: COLORS.teal }
-                    : { color: "#94a3b8" },
-                ]}
-              >
-                {badge.unlocked ? "Desbloqueado" : "Bloqueado"}
-              </Text>
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
       </View>
     </View>
@@ -153,6 +251,11 @@ export default function BadgesScreen() {
 /* ---------- STYLES ---------- */
 
 const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   header: {
     paddingTop: 60,
     paddingHorizontal: 24,
@@ -176,8 +279,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
   },
-
-  /* --- PROFILE PROGRESS --- */
   profileProgress: {
     alignItems: "center",
     marginBottom: 32,
@@ -233,8 +334,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.teal,
   },
-
-  /* --- BADGES --- */
   badgeCard: {
     flexDirection: "row",
     alignItems: "center",

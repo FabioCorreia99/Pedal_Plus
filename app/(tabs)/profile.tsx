@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import ActivityList from "../../components/activity/ActivityList";
 import { supabase } from "../../lib/supabase";
 
 const COLORS = {
@@ -51,7 +52,7 @@ export default function ProfileScreen() {
   useFocusEffect(
     React.useCallback(() => {
       fetchProfile();
-    }, [])
+    }, []),
   );
 
   const fetchProfile = async () => {
@@ -160,7 +161,7 @@ export default function ProfileScreen() {
 
           {/* ACTIVITY */}
           <View style={styles.chartCard}>
-            <Text style={styles.sectionTitle}>Atividade</Text>
+            <Text style={styles.sectionTitle}>Resumo de Atividade</Text>
 
             <View style={styles.periodSelector}>
               <PeriodButton
@@ -216,6 +217,12 @@ export default function ProfileScreen() {
                 <Text style={styles.dashBtnText}>Goals</Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          {/* ACTIVITY (FEED) */}
+          <View style={{ paddingHorizontal: 24, marginTop: 16 }}>
+            <Text style={styles.sectionTitle}>Atividades Recentes</Text>
+            <ActivityList userOnly limit={5} />
           </View>
 
           {/* LOGOUT */}
