@@ -13,7 +13,6 @@ import {
 import { Filter, Plus, Users } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 
-// Certifica-te que estes ficheiros estão na mesma pasta
 import CreateGroupView from './CreateGroupView';
 import GroupDetailView from './GroupDetailView';
 

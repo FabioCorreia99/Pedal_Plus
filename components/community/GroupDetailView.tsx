@@ -26,6 +26,8 @@ import { supabase } from '../../lib/supabase';
 // Certifica-te que tens navegação configurada ou usa props
 import { useNavigation, useRoute } from '@react-navigation/native';
 
+import PostDetailView from './PostDetailView';
+
 const COLORS = { 
   primaryGreen: "#5DBD76",
   primaryOrange: "#FF9E46", 
@@ -56,7 +58,8 @@ interface PostItem {
 }
 
 export default function GroupDetailView({ groupId: propGroupId, onBack }: GroupDetailProps) {
-  // Se usar React Navigation, pegar o ID dos params
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+
   const route = useRoute<any>();
   const navigation = useNavigation();
   const groupId = propGroupId || route.params?.groupId;
@@ -414,7 +417,11 @@ export default function GroupDetailView({ groupId: propGroupId, onBack }: GroupD
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn}>
+        {/* BOTÃO COMENTAR COM A AÇÃO */}
+        <TouchableOpacity 
+          style={styles.actionBtn}
+          onPress={() => setSelectedPost(item)} // <--- Ação Adicionada
+        >
           <MessageCircle size={20} color={COLORS.textGray} />
           <Text style={styles.actionText}>Comentar</Text>
         </TouchableOpacity>
@@ -452,6 +459,12 @@ export default function GroupDetailView({ groupId: propGroupId, onBack }: GroupD
         showsVerticalScrollIndicator={false}
         // Isto ajuda a manter o scroll estável quando o teclado abre
         keyboardShouldPersistTaps="handled"
+      />
+
+      <PostDetailView 
+        visible={!!selectedPost}
+        post={selectedPost}
+        onClose={() => setSelectedPost(null)}
       />
     </View>
   );
