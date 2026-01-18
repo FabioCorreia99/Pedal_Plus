@@ -321,12 +321,6 @@ function Item({
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
-
-      <View style={styles.buttonContainer}>
-        <View style={styles.goBtn}>
-          <Text style={styles.goBtnText}>{action}</Text>
-        </View>
-      </View>
     </TouchableOpacity>
   );
 }
