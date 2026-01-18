@@ -1,20 +1,22 @@
-import { Filter, Plus, Users } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
+import { 
+  View, 
+  Text, 
+  Image, 
+  StyleSheet, 
+  ActivityIndicator, 
   TouchableOpacity,
-  View
+  ScrollView,
+  Modal, // Essencial para cobrir o ecrã inteiro sem Router
+  Dimensions
 } from 'react-native';
-import { supabase } from '../../lib/supabase'; // Certifica-te que o caminho está correto
+import { Filter, Plus, Users } from 'lucide-react-native';
+import { supabase } from '../../lib/supabase';
 
-// IMPORTA O COMPONENTE QUE JÁ TENS
+// Certifica-te que estes ficheiros estão na mesma pasta
 import CreateGroupView from './CreateGroupView';
+import GroupDetailView from './GroupDetailView';
 
-// --- CORES ---
 const COLORS = { 
   primaryGreen: "#5DBD76",
   primaryOrange: "#FF9E46", 
@@ -26,12 +28,11 @@ const COLORS = {
 
 const PAGE_SIZE = 10;
 
-// Interface ajustada para a tua tabela (UUID e photo_url)
 interface GroupItem {
-  id: string; // UUID é string
+  id: string;
   name: string;
   description: string;
-  photo_url: string; // Tabela usa photo_url
+  photo_url: string;
   owner_id?: string;
 }
 
@@ -44,8 +45,10 @@ export default function GroupsView() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   
-  // ESTADO PARA CONTROLAR O MODAL
+  // ESTADOS DE NAVEGAÇÃO
   const [isCreating, setIsCreating] = useState(false);
+  // Quando este estado tem um ID, a "Página" de detalhe abre
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     initializeData();
@@ -58,7 +61,7 @@ export default function GroupsView() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
-        // 1. Buscar "Meus Grupos" (onde sou membro)
+        // 1. Buscar "Os Meus Grupos"
         const { data: memberData, error: memberError } = await supabase
           .from('group_members')
           .select(`
@@ -73,13 +76,12 @@ export default function GroupsView() {
           .eq('user_id', user.id);
 
         if (!memberError && memberData) {
-          // Flatten os dados
           const groupsList = memberData.map((item: any) => item.groups).filter(Boolean);
           setMyGroups(groupsList);
         }
       }
 
-      // 2. Buscar "Todos os Grupos" (Reset para pagina 0)
+      // 2. Buscar "Todos os Grupos"
       await fetchAllGroups(0, true);
 
     } catch (err) {
@@ -122,9 +124,9 @@ export default function GroupsView() {
     }
   };
 
-  // FUNÇÃO PARA ABRIR O MODAL
-  const handleCreateGroup = () => {
-    setIsCreating(true);
+  // NAVEGAÇÃO: Abre o modal de detalhe
+  const openGroupDetail = (groupId: string) => {
+    setSelectedGroupId(groupId);
   };
 
   if (loading) {
@@ -136,13 +138,13 @@ export default function GroupsView() {
     );
   }
 
-  // --- EMPTY STATE GLOBAL (Se não houver NENHUM grupo) ---
+  // --- EMPTY STATE (Sem grupos na app) ---
   if (allGroups.length === 0 && myGroups.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.subHeaderRow}>
           <Text style={styles.subHeaderTitle}>Grupos</Text>
-          <TouchableOpacity onPress={handleCreateGroup} style={styles.createMiniBtn}>
+          <TouchableOpacity onPress={() => setIsCreating(true)} style={styles.createMiniBtn}>
               <Plus size={16} color={COLORS.primaryOrange} />
               <Text style={styles.createMiniText}>Criar</Text>
           </TouchableOpacity>
@@ -154,11 +156,11 @@ export default function GroupsView() {
           </View>
           <Text style={styles.emptyTitle}>Encontre o seu Grupo</Text>
           <Text style={styles.emptyDesc}>
-            Parece que ainda não há comunidades. Seja o primeiro a fazer um!
+            Parece que ainda não há comunidades. Seja o primeiro a criar um!
           </Text>
           <TouchableOpacity 
             style={styles.createMainBtn}
-            onPress={handleCreateGroup}
+            onPress={() => setIsCreating(true)}
             activeOpacity={0.8}
           >
             <Plus size={20} color="white" style={{marginRight: 8}} />
@@ -166,7 +168,7 @@ export default function GroupsView() {
           </TouchableOpacity>
         </View>
 
-        {/* MODAL DE CRIAÇÃO */}
+        {/* Modal de Criação */}
         <CreateGroupView 
           visible={isCreating} 
           onClose={() => setIsCreating(false)}
@@ -179,20 +181,24 @@ export default function GroupsView() {
   return (
     <View style={styles.container}>
       
-      {/* --- SECÇÃO 1: MY GROUPS (Só aparece se tiver grupos) --- */}
+      {/* --- SECÇÃO 1: OS MEUS GRUPOS --- */}
       {myGroups.length > 0 && (
         <View style={styles.myGroupsSection}>
           <View style={styles.subHeaderRow}>
             <Text style={styles.subHeaderTitle}>Os Teus Grupos</Text>
-            {/* Atalho para criar */}
-            <TouchableOpacity onPress={handleCreateGroup}>
+            <TouchableOpacity onPress={() => setIsCreating(true)}>
                <Plus size={20} color={COLORS.primaryOrange} />
             </TouchableOpacity>
           </View>
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.myGroupsScroll}>
             {myGroups.map(g => (
-              <TouchableOpacity key={g.id} style={styles.myGroupCard} activeOpacity={0.8}>
+              <TouchableOpacity 
+                key={g.id} 
+                style={styles.myGroupCard} 
+                activeOpacity={0.8} 
+                onPress={() => openGroupDetail(g.id)}
+              >
                  <Image 
                     source={{ uri: g.photo_url || 'https://images.unsplash.com/photo-1528696892704-5e1122852276?q=80&w=200&auto=format&fit=crop' }} 
                     style={styles.myGroupImage} 
@@ -205,15 +211,14 @@ export default function GroupsView() {
         </View>
       )}
 
-      {/* --- SECÇÃO 2: ALL GROUPS --- */}
+      {/* --- SECÇÃO 2: DESCOBRIR GRUPOS --- */}
       <View style={styles.allGroupsSection}>
         <View style={styles.subHeaderRow}>
           <Text style={styles.subHeaderTitle}>Descobrir Grupos</Text>
           
           <View style={styles.actionsRow}>
-            {/* Se não tiver grupos meus, o botão de criar aparece aqui como destaque */}
             {myGroups.length === 0 && (
-              <TouchableOpacity onPress={handleCreateGroup} style={styles.createMiniBtn}>
+              <TouchableOpacity onPress={() => setIsCreating(true)} style={styles.createMiniBtn}>
                 <Plus size={16} color={COLORS.primaryOrange} />
                 <Text style={styles.createMiniText}>Criar</Text>
               </TouchableOpacity>
@@ -226,7 +231,12 @@ export default function GroupsView() {
 
         <View style={styles.listContainer}>
           {allGroups.map(g => (
-              <TouchableOpacity key={g.id} style={styles.listItem} activeOpacity={0.7}>
+              <TouchableOpacity 
+                key={g.id} 
+                style={styles.listItem} 
+                activeOpacity={0.7} 
+                onPress={() => openGroupDetail(g.id)}
+              >
                 <Image 
                   source={{ uri: g.photo_url || 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?q=80&w=200&auto=format&fit=crop' }} 
                   style={styles.listImage} 
@@ -235,17 +245,16 @@ export default function GroupsView() {
                 <View style={styles.textWrapper}>
                     <Text style={styles.listItemTitle}>{g.name}</Text>
                     <Text style={styles.listItemDesc} numberOfLines={2}>
-                      {g.description || 'No description provided.'}
+                      {g.description || 'Sem descrição.'}
                     </Text>
                 </View>
-                <TouchableOpacity style={styles.joinBtn}>
+                <TouchableOpacity style={styles.joinBtn} onPress={() => openGroupDetail(g.id)}>
                    <Text style={styles.joinBtnText}>Ver</Text>
                 </TouchableOpacity>
               </TouchableOpacity>
           ))}
         </View>
 
-        {/* --- LOAD MORE BUTTON --- */}
         {hasMore && (
           <TouchableOpacity 
             style={styles.loadMoreBtn} 
@@ -260,18 +269,35 @@ export default function GroupsView() {
           </TouchableOpacity>
         )}
         
-        {/* Espaço extra no fundo */}
         <View style={{height: 20}} />
       </View>
 
+      {/* --- MODAL DE CRIAÇÃO --- */}
       <CreateGroupView 
         visible={isCreating}
         onClose={() => setIsCreating(false)}
-        onGroupCreated={() => {
-          // Atualiza a lista quando um grupo novo é criado
-          initializeData();
-        }}
+        onGroupCreated={initializeData}
       />
+
+      {/* --- PÁGINA DE DETALHE (SIMULADA COM MODAL FULLSCREEN) --- */}
+      {/* Isto garante que cobre a barra de pesquisa e o cabeçalho antigo */}
+      <Modal
+        visible={!!selectedGroupId}
+        animationType="slide"
+        presentationStyle="fullScreen" 
+        onRequestClose={() => setSelectedGroupId(null)}
+      >
+        {selectedGroupId && (
+          <GroupDetailView 
+            groupId={selectedGroupId} 
+            onBack={() => {
+              setSelectedGroupId(null); // Fecha a "página"
+              initializeData(); // Atualiza (caso tenhas entrado num grupo)
+            }} 
+          />
+        )}
+      </Modal>
+
     </View>
   );
 }
@@ -331,7 +357,7 @@ const styles = StyleSheet.create({
   myGroupImage: {
     width: 64,
     height: 64,
-    borderRadius: 32, // Circulo
+    borderRadius: 32,
     borderWidth: 2,
     borderColor: COLORS.primaryGreen,
     marginBottom: 8,
@@ -374,7 +400,7 @@ const styles = StyleSheet.create({
   listImage: { 
     width: 56, 
     height: 56, 
-    borderRadius: 16, // Quadrado arredondado
+    borderRadius: 16, 
     backgroundColor: '#eee' 
   },
   textWrapper: {
@@ -442,7 +468,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#EAFDF2', // Verde muito claro (fundo do icone)
+    backgroundColor: '#EAFDF2',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
