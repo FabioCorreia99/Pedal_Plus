@@ -238,6 +238,10 @@ export default function GroupDetailView({
         setIsMember(false);
         setMemberCount((prev) => prev - 1);
         setCurrentUserRole(null);
+
+        // Adicionado: Voltar para trás ao sair do grupo
+        if (onBack) onBack();
+        else navigation.goBack();
       } else {
         const { error } = await supabase
           .from("group_members")
