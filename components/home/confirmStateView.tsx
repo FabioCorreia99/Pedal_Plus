@@ -115,7 +115,7 @@ export default function ConfirmState({
 
         <Text style={{ fontWeight: 'bold', marginBottom: 12 }}>Modo de Navegação</Text>
         <View style={{ flexDirection: 'row', backgroundColor: '#F0FDF4', padding: 4, borderRadius: 12, marginBottom: 32 }}>
-          {['Sport', 'Tourist', 'Safest'].map(mode => (
+          {['Sport', 'Turista', 'Seguro'].map(mode => (
             <TouchableOpacity
               key={mode}
               onPress={() => onRideModeChange(mode)}

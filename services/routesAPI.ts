@@ -4,7 +4,7 @@ type LatLng = { latitude: number; longitude: number };
 
 const ROUTES_API_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
-export type RideMode = 'Sport' | 'Tourist' | 'Safest';
+export type RideMode = 'Sport' | 'Turista' | 'Seguro';
 type TravelMode = 'BICYCLE' | 'DRIVE';
 
 export interface NavigationStep {
