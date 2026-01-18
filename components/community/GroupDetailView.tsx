@@ -401,7 +401,7 @@ export default function GroupDetailView({
               source={{
                 uri:
                   userProfile?.avatar_url ||
-                  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100",
+                  "https://i.pinimg.com/736x/0d/64/98/0d64989794b1a4c9d89bff571d3d5842.jpg",
               }}
               style={styles.userAvatarSmall}
             />
@@ -444,7 +444,7 @@ export default function GroupDetailView({
           source={{
             uri:
               item.profiles.avatar_url ||
-              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100",
+              "https://i.pinimg.com/736x/0d/64/98/0d64989794b1a4c9d89bff571d3d5842.jpg",
           }}
           style={styles.postAvatar}
         />
