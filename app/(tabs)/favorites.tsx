@@ -1,6 +1,7 @@
 import {
   addFavoriteLocation,
   getFavoriteLocations,
+  removeFavoriteLocation,
 } from "@/lib/favoriteLocations";
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
@@ -18,6 +19,8 @@ import { useNavigationIntent } from "@/context/NavigationContext";
 import { router } from "expo-router";
 
 import type { FavoriteLocation } from "@/types/favorites";
+
+import SwipeableItem from "@/components/SwipeableItem";
 
 /* ===============================
    TYPES & CONSTANTS
@@ -101,11 +104,15 @@ export default function FavoritesScreen() {
     (l) => l.category !== "home" && l.category !== "work",
   );
 
-  const mapFavorites = sorted.map((l) => ({
-    latitude: l.latitude,
-    longitude: l.longitude,
-    category: l.category,
-  }));
+  const mapFavorites = React.useMemo(
+    () =>
+      sorted.map((l) => ({
+        latitude: l.latitude,
+        longitude: l.longitude,
+        category: l.category,
+      })),
+    [sorted],
+  );
 
   /* ===============================
      MODAL HANDLER
@@ -203,25 +210,36 @@ export default function FavoritesScreen() {
           )}
 
           {others.map((l) => (
-            <Item
-              key={l.id ?? `${l.latitude}-${l.longitude}`}
-              icon="⭐"
-              title="Favorito"
-              subtitle={l.name}
-              action="Ir"
-              onPress={() => {
-                setIntent({
-                  type: "location",
-                  destination: {
-                    latitude: l.latitude,
-                    longitude: l.longitude,
-                  },
-                  destinationLabel: l.name,
-                });
+            <SwipeableItem
+              key={l.id}
+              enabled={l.category === "favorite"}
+              onDelete={async () => {
+                if (!l.id) return;
 
-                router.push("/");
+                await removeFavoriteLocation(l.id);
+
+                setLocations((prev) => prev.filter((item) => item.id !== l.id));
               }}
-            />
+            >
+              <Item
+                icon="⭐"
+                title="Favorito"
+                subtitle={l.name}
+                action="Ir"
+                onPress={() => {
+                  setIntent({
+                    type: "location",
+                    destination: {
+                      latitude: l.latitude,
+                      longitude: l.longitude,
+                    },
+                    destinationLabel: l.name,
+                  });
+
+                  router.push("/");
+                }}
+              />
+            </SwipeableItem>
           ))}
         </ScrollView>
 

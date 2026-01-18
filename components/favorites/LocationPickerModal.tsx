@@ -4,9 +4,11 @@ import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplet
 
 type LatLng = { latitude: number; longitude: number };
 
+type Category = "home" | "work" | "favorite";
+
 type Props = {
   visible: boolean;
-  category: "home" | "work" | null;
+  category: Category | null;
   onClose: () => void;
   onSelect: (coords: LatLng, description: string) => void;
 };
@@ -23,17 +25,25 @@ export default function LocationPickerModal({
     <Modal visible={visible} animationType="slide">
       <View style={styles.container}>
         <Text style={styles.title}>
-          Definir {category === "home" ? "Casa" : "Trabalho"}
+          {category === "home" && "Definir Casa"}
+          {category === "work" && "Definir Trabalho"}
+          {category === "favorite" && "Adicionar Favorito"}
         </Text>
 
         <GooglePlacesAutocomplete
-          placeholder="Pesquisar morada"
+          placeholder="Pesquisar morada ou local"
           fetchDetails
           enablePoweredByContainer={false}
+          debounce={300}
           query={{
             key: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY!,
             language: "pt",
+            components: "country:pt",
+            types: "geocode",
+            location: "41.1579,-8.6291",
+            radius: 30000, // 30 km → cobre o país inteiro
           }}
+          nearbyPlacesAPI="GooglePlacesSearch"
           onPress={(data, details) => {
             if (!details) return;
 
@@ -47,6 +57,10 @@ export default function LocationPickerModal({
           }}
           styles={{
             textInput: styles.input,
+            listView: {
+              backgroundColor: "white",
+              borderRadius: 12,
+            },
           }}
         />
 

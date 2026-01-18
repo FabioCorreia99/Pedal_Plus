@@ -62,3 +62,15 @@ export async function addFavoriteLocation(input: {
 
   return data as FavoriteLocation;
 }
+
+export async function removeFavoriteLocation(id: string) {
+  const { error } = await supabase
+    .from("favorite_locations")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Erro ao remover favorito:", error);
+    throw error;
+  }
+}
