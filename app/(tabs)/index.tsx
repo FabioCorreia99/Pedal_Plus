@@ -1,35 +1,52 @@
-import InteractiveMap from '@/components/InteractiveMap';
-import { saveRecentRoute } from '@/lib/recentRoutes';
-import { getCurrentStep, remainingDistanceMeters } from '@/services/navigationCalculations';
-import * as Location from 'expo-location';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Dimensions, View } from 'react-native';
-import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
-import ConfirmState from '../../components/home/confirmStateView';
-import NavigatingState from '../../components/home/navigationStateView';
-import PostActivityModal from '../../components/home/postActivityModal';
-import SearchState from '../../components/home/searchStateView';
-import { fetchBikeRoute, NavigationStep, RideMode } from '../../services/routesAPI';
+import InteractiveMap from "@/components/InteractiveMap";
+import { saveRecentRoute } from "@/lib/recentRoutes";
+import {
+  getCurrentStep,
+  remainingDistanceMeters,
+} from "@/services/navigationCalculations";
+import * as Location from "expo-location";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Dimensions, View } from "react-native";
+import { GooglePlacesAutocompleteRef } from "react-native-google-places-autocomplete";
 
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY as string;
+import ConfirmState from "../../components/home/confirmStateView";
+import NavigatingState from "../../components/home/navigationStateView";
+import PostActivityModal from "../../components/home/postActivityModal";
+import SearchState from "../../components/home/searchStateView";
+import {
+  fetchBikeRoute,
+  NavigationStep,
+  RideMode,
+} from "../../services/routesAPI";
+
+import { useNavigationIntent } from "@/context/NavigationContext";
+
+const GOOGLE_MAPS_API_KEY = process.env
+  .EXPO_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
 type LatLng = { latitude: number; longitude: number };
-
-// TODO: implement routeId props in PostActivityModal - should be passed if the route is saved in the DB
 
 export default function HomeScreen() {
   const [origin, setOrigin] = useState<LatLng | null>(null);
   const [destination, setDestination] = useState<LatLng | null>(null);
-  const [originLabel, setOriginLabel] = useState('');
-  const [destinationLabel, setDestinationLabel] = useState('');
-  const [routeState, setRouteState] = useState<'search' | 'confirm' | 'navigating'>('search');
-  const [rideMode, setRideMode] = useState<RideMode>('Sport');
+  const [originLabel, setOriginLabel] = useState("");
+  const [destinationLabel, setDestinationLabel] = useState("");
+  const [routeState, setRouteState] = useState<
+    "search" | "confirm" | "navigating"
+  >("search");
+  const [rideMode, setRideMode] = useState<RideMode>("Sport");
   const [showOriginSearch, setShowOriginSearch] = useState(false);
   const [showDestinationSearch, setShowDestinationSearch] = useState(false);
   const [routeCoords, setRouteCoords] = useState<LatLng[]>([]);
-  const [routeMeta, setRouteMeta] = useState<{ distanceMeters?: number; duration?: string }>({});
+  const [routeMeta, setRouteMeta] = useState<{
+    distanceMeters?: number;
+    duration?: string;
+  }>({});
   const [currentPosition, setCurrentPosition] = useState<LatLng | null>(null);
-  const [liveMeta, setLiveMeta] = useState<{ remainingMeters?: number; etaDate?: Date }>({});
+  const [liveMeta, setLiveMeta] = useState<{
+    remainingMeters?: number;
+    etaDate?: Date;
+  }>({});
   const [routeSteps, setRouteSteps] = useState<NavigationStep[]>([]);
   const [currentStep, setCurrentStep] = useState<{
     step: NavigationStep;
@@ -46,14 +63,19 @@ export default function HomeScreen() {
 
   const originRef = useRef<GooglePlacesAutocompleteRef>(null);
   const destinationRef = useRef<GooglePlacesAutocompleteRef>(null);
-  const hasCompletedRoute = useRef(false); // Add this to prevent multiple triggers
+  const hasCompletedRoute = useRef(false);
   const [recentPhotoUri, setRecentPhotoUri] = useState<string | null>(null);
 
+  /* 🔑 Navigation Intent (Favorites → Home) */
+  const { intent, clearIntent } = useNavigationIntent();
+
+  /* ===============================
+     GET CURRENT LOCATION (ORIGIN)
+  =============================== */
   useEffect(() => {
-    // Get current location on mount, set as origin in search state input
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== "granted") return;
 
       const loc = await Location.getCurrentPositionAsync({});
       const coords = {
@@ -62,41 +84,58 @@ export default function HomeScreen() {
       };
 
       const [address] = await Location.reverseGeocodeAsync(coords);
-      const label = [address.name, address.street, address.city].filter(Boolean).join(', ') || 'Localização atual';
+      const label =
+        [address.name, address.street, address.city]
+          .filter(Boolean)
+          .join(", ") || "Localização atual";
 
       setOrigin(coords);
       setOriginLabel(label);
     })();
   }, []);
 
+  /* ===============================
+     HANDLE INTENT FROM FAVORITES
+  =============================== */
   useEffect(() => {
-    // Automatically move to confirm state when both origin and destination are set
-    if (origin && destination && routeState === 'search') {
-      setRouteState('confirm');
+    if (!intent) return;
+
+    if (intent.type === "location") {
+      setDestination(intent.destination);
+      setDestinationLabel(intent.destinationLabel ?? "");
+      setRouteState("confirm");
+      clearIntent();
+    }
+  }, [intent]);
+
+  /* ===============================
+     AUTO CONFIRM WHEN BOTH SET
+  =============================== */
+  useEffect(() => {
+    if (origin && destination && routeState === "search") {
+      setRouteState("confirm");
     }
   }, [origin, destination, routeState]);
 
   const handleConfirmDestination = () => {
-    // Start navigation
     if (destination) {
-      setRouteState('navigating');
-      setRouteStartTime(new Date()); // Record when navigation starts
-      hasCompletedRoute.current = false; // Reset completion flag
+      setRouteState("navigating");
+      setRouteStartTime(new Date());
+      hasCompletedRoute.current = false;
     }
   };
 
   const handleRouteComplete = useCallback(async () => {
-
     if (hasCompletedRoute.current) return;
     if (!routeStartTime || !origin || !destination) return;
 
     hasCompletedRoute.current = true;
 
     const completedAt = new Date();
-    const durationMs = completedAt.getTime() - routeStartTime.getTime();
-    const durationMinutes = Math.ceil(durationMs / 60000);
+    const durationMinutes = Math.ceil(
+      (completedAt.getTime() - routeStartTime.getTime()) / 60000,
+    );
 
-    // Save recent route in local storage
     await saveRecentRoute({
       originLabel,
       destinationLabel,
@@ -106,44 +145,52 @@ export default function HomeScreen() {
       durationMinutes,
     });
 
-    setRouteCompletionData({
-      durationMinutes,
-      completedAt,
-    });
-
+    setRouteCompletionData({ durationMinutes, completedAt });
     setShowPostModal(true);
-  }, [routeStartTime, origin, destination, originLabel, destinationLabel, routeMeta.distanceMeters]);
+  }, [
+    routeStartTime,
+    origin,
+    destination,
+    originLabel,
+    destinationLabel,
+    routeMeta.distanceMeters,
+  ]);
 
-  const handleClosePostModal = async () => {
+  const handleClosePostModal = () => {
     setShowPostModal(false);
-    // TODO: Wait for recentPhotoUri to be set without using setTimeout
-    setTimeout(() => {
-    }, 300);
     resetInputs();
   };
 
+  /* ===============================
+     FETCH ROUTE
+  =============================== */
   useEffect(() => {
-    // Fetch route when in confirm state and origin/destination change
     let cancelled = false;
 
     (async () => {
-      if (routeState !== 'confirm') return;
-      if (!origin || !destination) return;
+      if (routeState !== "confirm" || !origin || !destination) return;
 
       try {
-        const result = await fetchBikeRoute(origin, destination, GOOGLE_MAPS_API_KEY, rideMode);
+        const result = await fetchBikeRoute(
+          origin,
+          destination,
+          GOOGLE_MAPS_API_KEY,
+          rideMode,
+        );
         if (!cancelled) {
           setRouteCoords(result.coords);
-          setRouteMeta({ distanceMeters: result.distanceMeters, duration: result.duration });
+          setRouteMeta({
+            distanceMeters: result.distanceMeters,
+            duration: result.duration,
+          });
           setRouteSteps(result.steps);
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           setRouteCoords([]);
           setRouteMeta({});
           setRouteSteps([]);
         }
-        console.log('fetchBikeRoute error', e);
       }
     })();
 
@@ -152,15 +199,18 @@ export default function HomeScreen() {
     };
   }, [routeState, origin, destination, rideMode]);
 
-  React.useEffect(() => {
+  /* ===============================
+     LIVE LOCATION
+  =============================== */
+  useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
     let mounted = true;
 
     (async () => {
-      if (routeState !== 'navigating') return;
+      if (routeState !== "navigating") return;
 
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== "granted") return;
 
       sub = await Location.watchPositionAsync(
         {
@@ -169,16 +219,16 @@ export default function HomeScreen() {
         },
         (loc) => {
           if (!mounted) return;
+
           setCurrentPosition({
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
           });
 
-          // heading is available from GPS when moving
-          if (loc.coords.heading !== null && loc.coords.heading !== -1) {
+          if (loc.coords.heading != null && loc.coords.heading !== -1) {
             setUserHeading(loc.coords.heading);
           }
-        }
+        },
       );
     })();
 
@@ -188,77 +238,101 @@ export default function HomeScreen() {
     };
   }, [routeState]);
 
+  /* ===============================
+     ETA + DISTANCE
+  =============================== */
   useEffect(() => {
-    if (routeState !== 'navigating') return;
-    if (!currentPosition) return;
-    if (routeCoords.length < 2) return;
+    if (
+      routeState !== "navigating" ||
+      !currentPosition ||
+      routeCoords.length < 2
+    )
+      return;
 
     const remaining = remainingDistanceMeters(currentPosition, routeCoords);
 
-    // Simple ETA: scale original duration by remainingDistance/totalDistance
     const total = routeMeta.distanceMeters ?? remaining;
-    const totalSeconds = routeMeta.duration ? parseInt(routeMeta.duration) : undefined;
+    const totalSeconds = routeMeta.duration
+      ? parseInt(routeMeta.duration)
+      : undefined;
+
     const remainingSeconds =
-      totalSeconds && total > 0 ? Math.round(totalSeconds * (remaining / total)) : undefined;
+      totalSeconds && total > 0
+        ? Math.round((totalSeconds * remaining) / total)
+        : undefined;
 
-    const etaDate = remainingSeconds ? new Date(Date.now() + remainingSeconds * 1000) : undefined;
+    setLiveMeta({
+      remainingMeters: remaining,
+      etaDate: remainingSeconds
+        ? new Date(Date.now() + remainingSeconds * 1000)
+        : undefined,
+    });
+  }, [
+    routeState,
+    currentPosition,
+    routeCoords,
+    routeMeta.distanceMeters,
+    routeMeta.duration,
+  ]);
 
-    setLiveMeta({ remainingMeters: remaining, etaDate });
-  }, [routeState, currentPosition, routeCoords, routeMeta.distanceMeters, routeMeta.duration]);
-
-  // Add effect to track current step while navigating
+  /* ===============================
+     CURRENT STEP
+  =============================== */
   useEffect(() => {
-    if (routeState !== 'navigating') return;
-    if (!currentPosition || routeSteps.length === 0) return;
+    if (
+      routeState !== "navigating" ||
+      !currentPosition ||
+      routeSteps.length === 0
+    )
+      return;
 
-    const stepInfo = getCurrentStep(currentPosition, routeSteps);
-    setCurrentStep(stepInfo);
+    setCurrentStep(getCurrentStep(currentPosition, routeSteps));
   }, [routeState, currentPosition, routeSteps]);
 
   const resetInputs = () => {
     setOrigin(null);
     setDestination(null);
-    setOriginLabel('');
-    setDestinationLabel('');
+    setOriginLabel("");
+    setDestinationLabel("");
     setRouteCoords([]);
     setRouteMeta({});
-    setRouteState('search');
+    setRouteState("search");
     setRouteStartTime(null);
     setRouteCompletionData(null);
-    hasCompletedRoute.current = false; // Reset completion flag
+    hasCompletedRoute.current = false;
     originRef.current?.clear();
     destinationRef.current?.clear();
   };
 
-  const screenHeight = Dimensions.get('window').height;
+  const screenHeight = Dimensions.get("window").height;
 
   const getMapPaddingBottom = () => {
-    if (routeState === 'search') {
-      return screenHeight * 0.55;
-    } else if (routeState === 'confirm') {
-      return 280;
-    } else {
-      return 120;
-    }
+    if (routeState === "search") return screenHeight * 0.55;
+    if (routeState === "confirm") return 280;
+    return 120;
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#eff6ff' }}>
+    <View style={{ flex: 1, backgroundColor: "#eff6ff" }}>
       <InteractiveMap
         lat={origin?.latitude ?? 52.3676}
         lon={origin?.longitude ?? 4.9041}
         zoom={12}
-        showRoute={routeState !== 'search'}
+        showRoute={routeState !== "search"}
         origin={origin ?? undefined}
         destination={destination ?? undefined}
-        currentPosition={routeState === 'navigating' ? currentPosition ?? undefined : undefined}
+        currentPosition={
+          routeState === "navigating"
+            ? (currentPosition ?? undefined)
+            : undefined
+        }
         mapPaddingBottom={getMapPaddingBottom()}
         routeCoordinates={routeCoords}
-        isNavigating={routeState === 'navigating'}
+        isNavigating={routeState === "navigating"}
         userHeading={userHeading}
       />
 
-      {routeState === 'search' && (
+      {routeState === "search" && (
         <SearchState
           originRef={originRef}
           destinationRef={destinationRef}
@@ -281,7 +355,7 @@ export default function HomeScreen() {
         />
       )}
 
-      {routeState === 'confirm' && (
+      {routeState === "confirm" && (
         <ConfirmState
           originLabel={originLabel}
           destinationLabel={destinationLabel}
@@ -294,9 +368,9 @@ export default function HomeScreen() {
         />
       )}
 
-      {routeState === 'navigating' && (
+      {routeState === "navigating" && (
         <NavigatingState
-          onBack={() => setRouteState('confirm')}
+          onBack={() => setRouteState("confirm")}
           distanceMeters={liveMeta.remainingMeters ?? routeMeta.distanceMeters}
           duration={routeMeta.duration}
           currentStep={currentStep}
@@ -310,13 +384,15 @@ export default function HomeScreen() {
           onClose={handleClosePostModal}
           durationMinutes={routeCompletionData.durationMinutes}
           completedAt={routeCompletionData.completedAt}
-          routeId={null} // No route ID for now, implement later if we have time
+          routeId={null}
           distanceKm={
-            routeMeta.distanceMeters ? routeMeta.distanceMeters / 1000 : undefined
+            routeMeta.distanceMeters
+              ? routeMeta.distanceMeters / 1000
+              : undefined
           }
           onConfirmPhoto={async (uri) => {
             if (!origin || !destination) return;
-            // Save the route only AFTER the photo is confirmed
+
             await saveRecentRoute({
               originLabel,
               destinationLabel,
@@ -324,10 +400,9 @@ export default function HomeScreen() {
               destination,
               distanceMeters: routeMeta.distanceMeters ?? 0,
               durationMinutes: routeCompletionData.durationMinutes,
-              thumbnailUrl: uri, // <- guaranteed to exist now
+              thumbnailUrl: uri,
             });
 
-            // optionally update local state to show it immediately
             setRecentPhotoUri(uri);
           }}
           routeCoords={routeCoords.length > 0 ? routeCoords : undefined}

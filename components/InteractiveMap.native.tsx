@@ -1,7 +1,7 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { InteractiveMapProps } from './InteractiveMap.types';
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import { InteractiveMapProps } from "./InteractiveMap.types";
 
 const InteractiveMap: React.FC<InteractiveMapProps> = ({
   zoom = 12,
@@ -13,10 +13,10 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
   routeCoordinates = [],
   isNavigating = false,
   userHeading = 0,
+  favoriteLocations,
 }) => {
   const mapRef = React.useRef<MapView>(null);
 
-  // Convert zoom level to deltas (simple approximation)
   const latitudeDelta = 180 / Math.pow(2, zoom);
   const longitudeDelta = latitudeDelta * 1.5;
 
@@ -32,7 +32,12 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     if (coordsToFit.length >= 2) {
       mapRef.current.fitToCoordinates(coordsToFit, {
-        edgePadding: { top: 100, right: 50, bottom: mapPaddingBottom + 20, left: 50 },
+        edgePadding: {
+          top: 100,
+          right: 50,
+          bottom: mapPaddingBottom + 20,
+          left: 50,
+        },
         animated: true,
       });
     }
@@ -43,16 +48,18 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
       setTimeout(() => {
         mapRef.current?.animateCamera(
           {
-            center: { latitude: origin.latitude, longitude: origin.longitude },
+            center: {
+              latitude: origin.latitude,
+              longitude: origin.longitude,
+            },
             zoom,
           },
-          { duration: 800 }
+          { duration: 800 },
         );
       }, 100);
     }
   }, [origin, showRoute, zoom]);
 
-  // Animate camera for navigation mode
   React.useEffect(() => {
     if (!isNavigating || !currentPosition || !mapRef.current) return;
 
@@ -62,11 +69,11 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
           latitude: currentPosition.latitude,
           longitude: currentPosition.longitude,
         },
-        pitch: 55, // Tilted view (0-90, higher = more tilted)
-        heading: userHeading, // Rotate map based on direction
-        zoom: 17, // Closer zoom for navigation
+        pitch: 55,
+        heading: userHeading,
+        zoom: 17,
       },
-      { duration: 300 } // Smooth animation
+      { duration: 300 },
     );
   }, [isNavigating, currentPosition, userHeading]);
 
@@ -83,22 +90,28 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
           longitudeDelta,
         }}
         mapPadding={{ top: 0, right: 0, bottom: mapPaddingBottom, left: 0 }}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
-        showsCompass={true}
-        zoomEnabled={true}
-        scrollEnabled={true}
+        showsUserLocation
+        showsMyLocationButton
+        showsCompass
+        zoomEnabled
+        scrollEnabled
       >
-        {origin && <Marker coordinate={origin} pinColor="#facc15" title="Origin" />}
+        {/* ORIGIN */}
+        {origin && (
+          <Marker coordinate={origin} pinColor="#facc15" title="Origem" />
+        )}
 
+        {/* DESTINATION */}
         {showRoute && destination && (
-          <Marker coordinate={destination} pinColor="#ef4444" title="Destination" />
+          <Marker coordinate={destination} pinColor="#ef4444" title="Destino" />
         )}
 
+        {/* CURRENT POSITION */}
         {showRoute && currentPosition && (
-          <Marker coordinate={currentPosition} pinColor="#5DBD76" title="You are here" />
+          <Marker coordinate={currentPosition} pinColor="#5DBD76" title="Tu" />
         )}
 
+        {/* ROUTE */}
         {showRoute && routeCoordinates.length >= 2 && (
           <Polyline
             coordinates={routeCoordinates}
@@ -107,12 +120,41 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
             lineDashPattern={[10, 5]}
           />
         )}
+
+        {/* ⭐ FAVORITE LOCATIONS */}
+        {favoriteLocations?.map((fav, index) => (
+          <Marker
+            key={`${fav.category}-${index}`}
+            coordinate={{
+              latitude: fav.latitude,
+              longitude: fav.longitude,
+            }}
+            pinColor={
+              fav.category === "home"
+                ? "#22c55e" // verde
+                : fav.category === "work"
+                  ? "#3b82f6" // azul
+                  : "#facc15" // amarelo
+            }
+            title={
+              fav.category === "home"
+                ? "Casa"
+                : fav.category === "work"
+                  ? "Trabalho"
+                  : "Favorito"
+            }
+          />
+        ))}
       </MapView>
 
+      {/* overlay visual */}
       <View
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: 'rgba(30, 58, 138, 0.1)', pointerEvents: 'none' },
+          {
+            backgroundColor: "rgba(30, 58, 138, 0.1)",
+            pointerEvents: "none",
+          },
         ]}
       />
     </View>
