@@ -145,7 +145,7 @@ export default function SearchState({
             <Text style={styles.deleteButtonText}>🗑️</Text>
           </View>
         )}
-        rightOpenValue={-SWIPE_WIDTH} // swipe threshold
+        rightOpenValue={-SWIPE_WIDTH - 30} // swipe threshold
         stopRightSwipe={-SWIPE_WIDTH}
         onRowOpen={(rowKey) => handleDeleteRoute(rowKey.toString())}
         ListEmptyComponent={() => (

@@ -25,6 +25,7 @@ interface PostActivityModalProps {
   routeId?: string | null;
   distanceKm?: number;
   onConfirmPhoto?: (uri: string) => void;
+  routeCoords?: Array<{ latitude: number; longitude: number }>;
 }
 
 export default function PostActivityModal({
@@ -35,6 +36,7 @@ export default function PostActivityModal({
   distanceKm,
   routeId,
   onConfirmPhoto,
+  routeCoords = [],
 }: PostActivityModalProps) {
   const [description, setDescription] = useState('');
   const [title, setTitle] = useState('');
@@ -42,21 +44,29 @@ export default function PostActivityModal({
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoPreviewVisible, setPhotoPreviewVisible] = useState(false);
   const [tempPhotoUri, setTempPhotoUri] = useState<string | null>(null);
+  const [postToCommunity, setPostToCommunity] = useState(false);
+  const [difficulty, setDifficulty] = useState<'fácil' | 'médio' | 'difícil' | null>(null);
+
+  const difficultyMap = {
+    fácil: 'easy',
+    médio: 'medium',
+    difícil: 'hard',
+  } as const;
 
   const formatDate = (date: Date) => {
     const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
     ];
     const day = date.getDate();
     const month = months[date.getMonth()];
@@ -72,11 +82,11 @@ export default function PostActivityModal({
   const getVisibilityLabel = () => {
     switch (visibility) {
       case 'public':
-        return 'Public';
+        return 'Público';
       case 'friends':
-        return 'Friends only';
+        return 'Apenas amigos';
       case 'private':
-        return 'Private';
+        return 'Privado';
     }
   };
 
@@ -85,14 +95,14 @@ export default function PostActivityModal({
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
         Alert.alert(
-          'Camera permission needed',
-          'Please allow camera access to take a photo for your activity.'
+          'Tens que permitir o acesso à câmara',
+          'Por favor, permite o acesso à câmara para tirar uma foto para a tua atividade.'
         );
         return;
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'], // <-- use string(s) here
+        mediaTypes: ['images'],
         quality: 1,
       });
 
@@ -110,37 +120,67 @@ export default function PostActivityModal({
     }
   };
 
-  
-
   const handlePost = async () => {
-    // TODO: Implement post logic
-    await supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        await supabase.from('activities').insert({
-          user_id: user.id,
-          route_id: routeId,
-          title,
-          description,
-          photo_url: photoUri,
-          distance_km: distanceKm || 0, 
-          duration_minutes: durationMinutes,
-          completed_at: completedAt.toISOString(),
-          visibility,
-          points_earned: ((distanceKm || 0) * 0.1),
-          eco_impact_score: ((distanceKm || 0) * 0.05),
-          calories_burned: ((distanceKm || 0) * 8),
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-        }).then(({ data, error }) => {
-          if (error) {
-            console.error('Error posting activity:', error);
-          } else {
-            console.log('Activity posted successfully:', data);
-          }
-        });
+    // Create activity
+    const { data: activity, error: activityError } =
+      await supabase.from('activities').insert({
+        user_id: user.id,
+        route_id: routeId,
+        title,
+        description,
+        photo_url: photoUri,
+        distance_km: distanceKm || 0,
+        duration_minutes: durationMinutes,
+        completed_at: completedAt.toISOString(),
+        visibility,
+        points_earned: (distanceKm || 0) * 0.1,
+        eco_impact_score: (distanceKm || 0) * 0.05,
+        calories_burned: (distanceKm || 0) * 8,
+      }).select().single();
+
+    if (activityError) {
+      console.error(activityError);
+      return;
+    }
+
+    // Optionally create community route
+    if (postToCommunity) {
+      if (!difficulty) {
+        Alert.alert('Escolhe a dificuldade');
+        return;
       }
-    });
+
+      const { error: routeError } = await supabase
+        .from('routes')
+        .insert({
+          creator_id: user.id,
+          name: title || 'Rota sem nome',
+          description,
+          difficulty: difficultyMap[difficulty],
+          distance_km: distanceKm,
+          estimated_duration_min: durationMinutes,
+          cover_photo_url: photoUri,
+          path_data: routeCoordsToGeoJSON(),
+          is_public: visibility === 'public',
+        });
+
+      if (routeError) {
+        console.error(routeError);
+      }
+    }
+
     onClose();
   };
+
+  function routeCoordsToGeoJSON() {
+    return {
+      type: 'LineString',
+      coordinates: routeCoords.map((c) => [c.longitude, c.latitude]),
+    };
+  }
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
@@ -204,6 +244,40 @@ export default function PostActivityModal({
             />
             <Text style={styles.charCount}>{description.length}/2000</Text>
           </View>
+
+          <TouchableOpacity
+            style={styles.visibilityRow}
+            onPress={() => setPostToCommunity((v) => !v)}
+          >
+            <Text style={styles.visibilityLabel}>Publicar rota na comunidade</Text>
+            <Text style={{ fontSize: 18 }}>
+              {postToCommunity ? '✔️' : '⬜'}
+            </Text>
+          </TouchableOpacity>
+
+          {postToCommunity && (
+            <View style={{ marginTop: 16 }}>
+              <Text style={styles.label}>Dificuldade</Text>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                {(['fácil', 'médio', 'difícil'] as const).map((d) => (
+                  <TouchableOpacity
+                    key={d}
+                    onPress={() => setDifficulty(d)}
+                    style={{
+                      paddingVertical: 10,
+                      paddingHorizontal: 16,
+                      borderRadius: 20,
+                      backgroundColor: difficulty === d ? '#FF9331' : '#e5e7eb',
+                    }}
+                  >
+                    <Text style={{ color: difficulty === d ? '#fff' : '#333' }}>
+                      {d}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Visibility */}
           <TouchableOpacity
@@ -331,7 +405,6 @@ export default function PostActivityModal({
                 setPhotoUri(tempPhotoUri);
                 setPhotoPreviewVisible(false);
                 setTempPhotoUri(null);
-                onClose(); // close modal
               }}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>

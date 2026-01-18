@@ -104,7 +104,6 @@ export default function HomeScreen() {
       destination,
       distanceMeters: routeMeta.distanceMeters ?? 0,
       durationMinutes,
-      thumbnailUrl: recentPhotoUri ?? undefined, // Could implement map snapshot later
     });
 
     setRouteCompletionData({
@@ -331,6 +330,7 @@ export default function HomeScreen() {
             // optionally update local state to show it immediately
             setRecentPhotoUri(uri);
           }}
+          routeCoords={routeCoords.length > 0 ? routeCoords : undefined}
         />
       )}
     </View>
