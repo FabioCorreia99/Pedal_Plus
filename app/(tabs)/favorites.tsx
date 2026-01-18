@@ -19,8 +19,21 @@ import { router } from "expo-router";
 
 import type { FavoriteLocation } from "@/types/favorites";
 
-const COLORS = { primaryGreen: "#5DBD76", primaryOrange: "#FF9E46" };
+/* ===============================
+   TYPES & CONSTANTS
+=============================== */
+
+const COLORS = {
+  primaryGreen: "#5DBD76",
+  primaryOrange: "#FF9E46",
+};
+
 type LatLng = { latitude: number; longitude: number };
+type FavoriteCategory = "home" | "work" | "favorite";
+
+/* ===============================
+   HELPERS
+=============================== */
 
 function normalizeLocations(data: any[]): FavoriteLocation[] {
   return (data ?? []).filter(
@@ -34,6 +47,10 @@ function normalizeLocations(data: any[]): FavoriteLocation[] {
   );
 }
 
+/* ===============================
+   SCREEN
+=============================== */
+
 export default function FavoritesScreen() {
   const [locations, setLocations] = useState<FavoriteLocation[]>([]);
   const [currentLocation, setCurrentLocation] = useState<LatLng | null>(null);
@@ -41,12 +58,11 @@ export default function FavoritesScreen() {
   const { setIntent } = useNavigationIntent();
 
   const [showModal, setShowModal] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<
-    "home" | "work" | null
-  >(null);
+  const [editingCategory, setEditingCategory] =
+    useState<FavoriteCategory | null>(null);
 
   /* ===============================
-     LOAD FAVORITES (SAFE)
+     LOAD FAVORITES
   =============================== */
   useEffect(() => {
     (async () => {
@@ -72,16 +88,12 @@ export default function FavoritesScreen() {
   }, []);
 
   /* ===============================
-     SORT & SPLIT (SAFE)
+     SORT & SPLIT
   =============================== */
   const sorted = [...locations].sort((a, b) => {
     const order = { home: 0, work: 1, favorite: 2 };
     return (order[a.category] ?? 99) - (order[b.category] ?? 99);
   });
-
-  const [editingPreview, setEditingPreview] = useState<"home" | "work" | null>(
-    null,
-  );
 
   const home = sorted.find((l) => l.category === "home");
   const work = sorted.find((l) => l.category === "work");
@@ -95,20 +107,23 @@ export default function FavoritesScreen() {
     category: l.category,
   }));
 
-  function openModal(category: "home" | "work") {
+  /* ===============================
+     MODAL HANDLER
+     (define contexto + abre modal)
+  =============================== */
+  function openModal(category: FavoriteCategory) {
     setEditingCategory(category);
     setShowModal(true);
   }
 
+  /* ===============================
+     RENDER
+  =============================== */
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.primaryGreen }}>
       {/* HEADER */}
-      <View
-        style={{ paddingTop: 60, paddingHorizontal: 24, paddingBottom: 16 }}
-      >
-        <Text style={{ color: "white", fontSize: 24, fontWeight: "bold" }}>
-          Favoritos
-        </Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Favoritos</Text>
       </View>
 
       {/* CONTENT */}
@@ -130,19 +145,14 @@ export default function FavoritesScreen() {
 
         {/* LIST */}
         <ScrollView style={{ paddingHorizontal: 24 }}>
+          {/* CASA */}
           <Item
             icon="🏠"
             title="Casa"
             subtitle={home?.name ?? "Definir morada"}
-            action={editingPreview === "home" ? "Editar" : "Ir"}
+            action="Ir"
             onPress={() => {
               if (!home) {
-                openModal("home");
-                return;
-              }
-
-              // se estiver em modo editar, abre modal
-              if (editingPreview === "home") {
                 openModal("home");
                 return;
               }
@@ -158,24 +168,17 @@ export default function FavoritesScreen() {
 
               router.push("/");
             }}
-            onLongPress={() => {
-              setEditingPreview("home");
-              openModal("home");
-            }}
+            onLongPress={() => openModal("home")}
           />
 
+          {/* TRABALHO */}
           <Item
             icon="💼"
             title="Trabalho"
             subtitle={work?.name ?? "Definir morada"}
-            action={editingPreview === "work" ? "Editar" : "Ir"}
+            action="Ir"
             onPress={() => {
               if (!work) {
-                openModal("work");
-                return;
-              }
-
-              if (editingPreview === "work") {
                 openModal("work");
                 return;
               }
@@ -191,12 +194,10 @@ export default function FavoritesScreen() {
 
               router.push("/");
             }}
-            onLongPress={() => {
-              setEditingPreview("work");
-              openModal("work");
-            }}
+            onLongPress={() => openModal("work")}
           />
 
+          {/* OUTROS FAVORITOS */}
           {others.length === 0 && (
             <Text style={styles.emptyText}>Nenhum favorito ainda</Text>
           )}
@@ -207,11 +208,31 @@ export default function FavoritesScreen() {
               icon="⭐"
               title="Favorito"
               subtitle={l.name}
-              action="—"
-              onPress={() => {}}
+              action="Ir"
+              onPress={() => {
+                setIntent({
+                  type: "location",
+                  destination: {
+                    latitude: l.latitude,
+                    longitude: l.longitude,
+                  },
+                  destinationLabel: l.name,
+                });
+
+                router.push("/");
+              }}
             />
           ))}
         </ScrollView>
+
+        {/* ADD FAVORITE BUTTON */}
+        <TouchableOpacity
+          style={styles.addFavoriteBtn}
+          onPress={() => openModal("favorite")}
+        >
+          <Text style={styles.addFavoriteIcon}>＋</Text>
+          <Text style={styles.addFavoriteText}>Adicionar favorito</Text>
+        </TouchableOpacity>
       </View>
 
       {/* MODAL */}
@@ -221,7 +242,6 @@ export default function FavoritesScreen() {
         onClose={() => {
           setShowModal(false);
           setEditingCategory(null);
-          setEditingPreview(null);
         }}
         onSelect={async (coords, description) => {
           if (!editingCategory) return;
@@ -234,18 +254,27 @@ export default function FavoritesScreen() {
           });
 
           setLocations((prev) => {
+            // favoritos → adiciona
+            if (editingCategory === "favorite") {
+              return normalizeLocations([...prev, saved]);
+            }
+
+            // home / work → substitui
             const filtered = prev.filter((l) => l.category !== editingCategory);
             return normalizeLocations([...filtered, saved]);
           });
 
           setShowModal(false);
           setEditingCategory(null);
-          setEditingPreview(null);
         }}
       />
     </View>
   );
 }
+
+/* ===============================
+   ITEM COMPONENT
+=============================== */
 
 function Item({
   icon,
@@ -284,19 +313,36 @@ function Item({
   );
 }
 
+/* ===============================
+   STYLES
+=============================== */
+
 const styles = StyleSheet.create({
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+  },
+  headerTitle: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+
   content: {
     flex: 1,
     backgroundColor: "#F5F7F8",
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
   },
+
   mapContainer: {
     height: 160,
     margin: 24,
     borderRadius: 16,
     overflow: "hidden",
   },
+
   item: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -304,17 +350,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
-  goBtn: {
-    backgroundColor: COLORS.primaryOrange,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  emptyText: {
-    textAlign: "center",
-    color: "#9ca3af",
-    marginTop: 24,
-  },
+
   icon: {
     fontSize: 22,
     marginTop: 4,
@@ -342,8 +378,47 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
 
+  goBtn: {
+    backgroundColor: COLORS.primaryOrange,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+
   goBtnText: {
     color: "white",
     fontWeight: "bold",
+  },
+
+  emptyText: {
+    textAlign: "center",
+    color: "#9ca3af",
+    marginTop: 24,
+  },
+
+  addFavoriteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 24,
+    marginBottom: 32,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: "#FFF7ED",
+    borderWidth: 1,
+    borderColor: COLORS.primaryOrange,
+  },
+
+  addFavoriteIcon: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.primaryOrange,
+    marginRight: 8,
+  },
+
+  addFavoriteText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.primaryOrange,
   },
 });
