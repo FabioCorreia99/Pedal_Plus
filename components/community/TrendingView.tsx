@@ -30,6 +30,7 @@ interface Route {
 
 export default function TrendingView() {
   const [routesData, setRoutesData] = useState<Route[]>([]);
+  const [feedMode, setFeedMode] = useState<"public" | "friends">("public");
 
   useEffect(() => {
     // AQUI: Adiciona a tua chamada ao Supabase para buscar as rotas reais
@@ -114,7 +115,31 @@ export default function TrendingView() {
       <View style={styles.feedSection}>
         <Text style={styles.sectionTitle}>Atividade recente</Text>
 
-        <ActivityList userOnly={false} limit={20} />
+        <View style={styles.feedToggleRow}>
+          <TouchableOpacity onPress={() => setFeedMode("public")}>
+            <Text
+              style={[
+                styles.feedToggleText,
+                feedMode === "public" && styles.feedToggleActive,
+              ]}
+            >
+              Populares
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setFeedMode("friends")}>
+            <Text
+              style={[
+                styles.feedToggleText,
+                feedMode === "friends" && styles.feedToggleActive,
+              ]}
+            >
+              Amigos
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ActivityList mode={feedMode} limit={50} />
       </View>
     </View>
   );
@@ -221,5 +246,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#444",
     marginTop: 2,
+  },
+  feedToggleRow: {
+    flexDirection: "row",
+    gap: 20,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+
+  feedToggleText: {
+    fontSize: 14,
+    color: "#9ca3af",
+    fontWeight: "500",
+  },
+
+  feedToggleActive: {
+    color: "#FF9E46",
+    fontWeight: "700",
   },
 });
