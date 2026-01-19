@@ -49,10 +49,14 @@ export default function ProfileScreen() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [ridesCount, setRidesCount] = useState(0);
 
   useFocusEffect(
     React.useCallback(() => {
       fetchProfile();
+      fetchFriendsStats();
+      fetchRidesStats();
     }, []),
   );
 
@@ -89,6 +93,58 @@ export default function ProfileScreen() {
     }
   };
 
+  const fetchFriendsStats = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("friendships")
+      .select("user_id, friend_id")
+      .eq("status", "accepted")
+      .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+
+    if (error) {
+      console.error("Erro ao buscar amigos:", error.message);
+      return;
+    }
+
+    const uniqueFriends = new Set<string>();
+
+    data?.forEach((row) => {
+      if (row.user_id === user.id) {
+        uniqueFriends.add(row.friend_id);
+      } else {
+        uniqueFriends.add(row.user_id);
+      }
+    });
+
+    setFriendsCount(uniqueFriends.size);
+  };
+
+  const fetchRidesStats = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { count, error } = await supabase
+      .from("activities")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .not("completed_at", "is", null);
+
+    if (error) {
+      console.error("Erro ao contar rides:", error.message);
+      return;
+    }
+
+    setRidesCount(count ?? 0);
+  };
+
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -102,13 +158,36 @@ export default function ProfileScreen() {
     }
   };
 
+  const getProfileLink = () => {
+    if (!profile) return null;
+
+    if (profile.username) {
+      return `https://pedal.plus/u/${profile.username}`;
+    }
+
+    return `https://pedal.plus/u/id`;
+  };
+
   const handleShare = async () => {
+    if (!profile) return;
+
+    const displayName =
+      profile.full_name || profile.username || "um utilizador do Pedal+";
+
+    const link = getProfileLink();
+
+    const message = [
+      `🚴 ${displayName} está no Pedal+!`,
+      "",
+      "Segue as minhas atividades e pedala comigo.",
+      "",
+      link,
+    ].join("\n");
+
     try {
-      await Share.share({
-        message: "Vê o meu perfil no Pedal+ 🚴‍♂️",
-      });
+      await Share.share({ message });
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao partilhar perfil:", error);
     }
   };
 
@@ -153,17 +232,13 @@ export default function ProfileScreen() {
               </Text>
 
               <View style={styles.statsRow}>
-                <Stat label="Rides" value="270" />
-                <Stat label="Seguidores" value="102" />
-                <Stat label="A seguir" value="178" />
+                <Stat label="Rides" value={ridesCount.toString()} />
+                <Stat label="Amigos" value={friendsCount.toString()} />
               </View>
             </View>
           </View>
 
-          <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
-            <Text style={styles.sectionTitle}>Pedidos de Amizade</Text>
-            <FriendRequestsList />
-          </View>
+          <FriendRequestsList hideWhenEmpty />
 
           {/* ACTIVITY */}
           <View style={styles.chartCard}>
@@ -249,8 +324,8 @@ export default function ProfileScreen() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ alignItems: "center" }}>
-      <Text style={{ fontWeight: "bold", fontSize: 16 }}>{value}</Text>
-      <Text style={{ fontSize: 12, color: "#666" }}>{label}</Text>
+      <Text style={{ fontWeight: "bold", fontSize: 18 }}>{value}</Text>
+      <Text style={{ fontSize: 12, color: "#6b7280" }}>{label}</Text>
     </View>
   );
 }
@@ -352,10 +427,11 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    gap: 32,
     marginTop: 12,
-    paddingRight: 16,
   },
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",

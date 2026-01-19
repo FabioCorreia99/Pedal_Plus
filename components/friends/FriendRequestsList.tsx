@@ -10,7 +10,16 @@ interface FriendRequest {
   } | null;
 }
 
-export default function FriendRequestsList() {
+/**
+ * hideWhenEmpty:
+ * - false (default): mostra "Sem pedidos pendentes"
+ * - true: não renderiza nada quando está vazio
+ */
+export default function FriendRequestsList({
+  hideWhenEmpty = false,
+}: {
+  hideWhenEmpty?: boolean;
+}) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +31,7 @@ export default function FriendRequestsList() {
     } = await supabase.auth.getUser();
 
     if (!user) {
+      setRequests([]);
       setLoading(false);
       return;
     }
@@ -30,11 +40,11 @@ export default function FriendRequestsList() {
       .from("friendships")
       .select(
         `
-    user_id,
-    profiles:profiles!friendships_user_id_fkey (
-      username
-    )
-  `,
+        user_id,
+        profiles:profiles!friendships_user_id_fkey (
+          username
+        )
+        `,
       )
       .eq("friend_id", user.id)
       .eq("status", "pending");
@@ -46,7 +56,6 @@ export default function FriendRequestsList() {
     }
 
     setRequests((data as FriendRequest[]) ?? []);
-
     setLoading(false);
   }, []);
 
@@ -99,10 +108,14 @@ export default function FriendRequestsList() {
   };
 
   if (loading) {
-    return <Text style={styles.state}>A carregar pedidos…</Text>;
+    return <Text style={styles.state}></Text>;
   }
 
   if (!requests.length) {
+    if (hideWhenEmpty) {
+      return null;
+    }
+
     return <Text style={styles.state}>Sem pedidos pendentes</Text>;
   }
 
@@ -170,7 +183,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
-
   rejectText: {
     color: "#FF4646",
     fontWeight: "700",

@@ -34,7 +34,6 @@ const metricUnitMap: Record<string, string> = {
   impacto_ecológico: "pts",
 };
 
-
 interface UserGoal {
   id: string;
   metric: string;
@@ -47,6 +46,7 @@ export default function GoalsScreen() {
   const router = useRouter();
   const [goals, setGoals] = useState<UserGoal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGoals();
@@ -62,6 +62,15 @@ export default function GoalsScreen() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) return;
+
+      // 👉 buscar nome do utilizador
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, username")
+        .eq("id", user.id)
+        .single();
+
+      setUserName(profile?.full_name || profile?.username || null);
 
       const { data, error } = await supabase
         .from("user_goals")
@@ -97,35 +106,39 @@ export default function GoalsScreen() {
         <ScrollView contentContainerStyle={{ padding: 24 }}>
           {/* weeklyly Progress */}
           <View style={styles.progressCard}>
-            <Text style={styles.hello}>Olá, Georg</Text>
+            <Text style={styles.hello}>
+              Olá{userName ? `, ${userName}` : ""} 👋
+            </Text>
+
             <Text style={styles.subtitle}>Progresso desta semana</Text>
 
             {loading ? (
-  <Text>A carregar...</Text>
-) : (
-  goals.map((goal) => {
-    const percent =
-      goal.target_value > 0
-        ? Math.min(
-            Math.round((goal.current_value / goal.target_value) * 100),
-            100
-          )
-        : 0;
+              <Text>A carregar...</Text>
+            ) : (
+              goals.map((goal) => {
+                const percent =
+                  goal.target_value > 0
+                    ? Math.min(
+                        Math.round(
+                          (goal.current_value / goal.target_value) * 100,
+                        ),
+                        100,
+                      )
+                    : 0;
 
-    return (
-      <ProgressRow
-        key={goal.id}
-        label={metricLabelMap[goal.metric] ?? goal.metric}
-        value={`${goal.current_value} / ${goal.target_value} ${
-          metricUnitMap[goal.metric] ?? ""
-        }`}
-        percent={percent}
-        color="#8DD4A4"
-      />
-    );
-  })
-)}
-
+                return (
+                  <ProgressRow
+                    key={goal.id}
+                    label={metricLabelMap[goal.metric] ?? goal.metric}
+                    value={`${goal.current_value} / ${goal.target_value} ${
+                      metricUnitMap[goal.metric] ?? ""
+                    }`}
+                    percent={percent}
+                    color="#8DD4A4"
+                  />
+                );
+              })
+            )}
           </View>
 
           {/* Goals List */}
@@ -133,18 +146,15 @@ export default function GoalsScreen() {
             Configuração dos seus objetivos
           </Text>
 
-{goals.map((goal) => (
-  <GoalRow
-    key={goal.id}
-    icon="🎯"
-    label={metricLabelMap[goal.metric] ?? goal.metric}
-    value={`${goal.target_value} ${
-      metricUnitMap[goal.metric] ?? ""
-    }`}
-    period={goal.duration}
-  />
-))}
-
+          {goals.map((goal) => (
+            <GoalRow
+              key={goal.id}
+              icon="🎯"
+              label={metricLabelMap[goal.metric] ?? goal.metric}
+              value={`${goal.target_value} ${metricUnitMap[goal.metric] ?? ""}`}
+              period={goal.duration}
+            />
+          ))}
 
           {/* CTA */}
           <TouchableOpacity
