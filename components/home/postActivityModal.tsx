@@ -4,6 +4,7 @@ import { Facebook, Instagram, Share2, Twitter, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert,
+  ActivityIndicator,
   Image,
   Modal,
   ScrollView,
@@ -14,8 +15,6 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
-
-// TODO: add photo upload functionality 
 
 interface PostActivityModalProps {
   visible: boolean;
@@ -46,6 +45,7 @@ export default function PostActivityModal({
   const [tempPhotoUri, setTempPhotoUri] = useState<string | null>(null);
   const [postToCommunity, setPostToCommunity] = useState(false);
   const [difficulty, setDifficulty] = useState<'fácil' | 'médio' | 'difícil' | null>(null);
+  const [isUploading, setIsUploading] = useState(false); // Estado para loading do post
 
   const difficultyMap = {
     fácil: 'easy',
@@ -55,18 +55,8 @@ export default function PostActivityModal({
 
   const formatDate = (date: Date) => {
     const months = [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
     ];
     const day = date.getDate();
     const month = months[date.getMonth()];
@@ -81,12 +71,9 @@ export default function PostActivityModal({
 
   const getVisibilityLabel = () => {
     switch (visibility) {
-      case 'public':
-        return 'Público';
-      case 'friends':
-        return 'Apenas amigos';
-      case 'private':
-        return 'Privado';
+      case 'public': return 'Público';
+      case 'friends': return 'Apenas amigos';
+      case 'private': return 'Privado';
     }
   };
 
@@ -103,7 +90,7 @@ export default function PostActivityModal({
 
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        quality: 1,
+        quality: 0.8, // Reduzir ligeiramente qualidade para upload mais rápido
       });
 
       if (result.canceled) return;
@@ -111,7 +98,6 @@ export default function PostActivityModal({
       const uri = result.assets?.[0]?.uri ?? null;
       if (!uri) return;
 
-      // Show preview modal with overlay + share placeholders
       setTempPhotoUri(uri);
       setPhotoPreviewVisible(true);
     } catch (e) {
@@ -120,59 +106,119 @@ export default function PostActivityModal({
     }
   };
 
-  const handlePost = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  // --- FUNÇÃO DE UPLOAD ---
+  const uploadImageToSupabase = async (uri: string, userId: string) => {
+    try {
+      // Ler ficheiro como ArrayBuffer
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
 
-    // Create activity
-    const { data: activity, error: activityError } =
-      await supabase.from('activities').insert({
-        user_id: user.id,
-        route_id: routeId,
-        title,
-        description,
-        photo_url: photoUri,
-        distance_km: distanceKm || 0,
-        duration_minutes: durationMinutes,
-        completed_at: completedAt.toISOString(),
-        visibility,
-        points_earned: (distanceKm || 0) * 0.1,
-        eco_impact_score: (distanceKm || 0) * 0.05,
-        calories_burned: (distanceKm || 0) * 8,
-      }).select().single();
+      // Gerar nome único: userID/timestamp.ext
+      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
-    if (activityError) {
-      console.error(activityError);
-      return;
+      // Upload para o bucket 'activity-images'
+      const { error: uploadError } = await supabase.storage
+        .from('activity-images') // Certifica-te que este bucket existe!
+        .upload(fileName, arrayBuffer, {
+          contentType: `image/${fileExt}`,
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Obter URL Público
+      const { data } = supabase.storage
+        .from('activity-images')
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
+
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
     }
+  };
 
-    // Optionally create community route
-    if (postToCommunity) {
-      if (!difficulty) {
-        Alert.alert('Escolhe a dificuldade');
+  const handlePost = async () => {
+    setIsUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+         setIsUploading(false);
+         return;
+      }
+
+      // 1. Fazer upload da imagem se existir
+      let publicImageUrl = null;
+      if (photoUri) {
+        publicImageUrl = await uploadImageToSupabase(photoUri, user.id);
+        if (!publicImageUrl) {
+          Alert.alert("Erro", "Falha ao enviar a imagem. Verifica a tua conexão.");
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      // 2. Criar Atividade
+      const { error: activityError } =
+        await supabase.from('activities').insert({
+          user_id: user.id,
+          route_id: routeId,
+          title: title || 'Nova Atividade',
+          description,
+          photo_url: publicImageUrl, // URL do Supabase, não local
+          distance_km: distanceKm || 0,
+          duration_minutes: durationMinutes,
+          completed_at: completedAt.toISOString(),
+          visibility,
+          points_earned: (distanceKm || 0) * 0.1,
+          eco_impact_score: (distanceKm || 0) * 0.05,
+          calories_burned: (distanceKm || 0) * 8,
+        });
+
+      if (activityError) {
+        console.error(activityError);
+        Alert.alert("Erro", "Falha ao guardar atividade.");
+        setIsUploading(false);
         return;
       }
 
-      const { error: routeError } = await supabase
-        .from('routes')
-        .insert({
-          creator_id: user.id,
-          name: title || 'Rota sem nome',
-          description,
-          difficulty: difficultyMap[difficulty],
-          distance_km: distanceKm,
-          estimated_duration_min: durationMinutes,
-          cover_photo_url: photoUri,
-          path_data: routeCoordsToGeoJSON(),
-          is_public: visibility === 'public',
-        });
+      // 3. Opcional: Criar Rota na Comunidade
+      if (postToCommunity) {
+        if (!difficulty) {
+          Alert.alert('Atenção', 'Por favor escolhe a dificuldade para publicar na comunidade.');
+          setIsUploading(false);
+          return;
+        }
 
-      if (routeError) {
-        console.error(routeError);
+        const { error: routeError } = await supabase
+          .from('routes')
+          .insert({
+            creator_id: user.id,
+            name: title || 'Rota sem nome',
+            description,
+            difficulty: difficultyMap[difficulty],
+            distance_km: distanceKm,
+            estimated_duration_min: durationMinutes,
+            cover_photo_url: publicImageUrl, // URL do Supabase
+            path_data: routeCoordsToGeoJSON(),
+            is_public: visibility === 'public',
+          });
+
+        if (routeError) {
+          console.error(routeError);
+          // Não paramos aqui, pois a atividade já foi criada
+        }
       }
-    }
 
-    onClose();
+      onClose();
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   function routeCoordsToGeoJSON() {
@@ -207,14 +253,20 @@ export default function PostActivityModal({
           </View>
 
           {/* Add Photo/Video */}
-          <TouchableOpacity style={styles.mediaButton } onPress={handlePhotoUpload}>
+          <TouchableOpacity style={styles.mediaButton} onPress={handlePhotoUpload}>
             <View style={styles.mediaIconContainer}>
-              <View style={styles.imageIcon}>
-                <View style={styles.imageIconInner} />
-                <View style={styles.imageIconCircle} />
-              </View>
+               {photoUri ? (
+                 <Image source={{uri: photoUri}} style={{width: '100%', height: '100%', borderRadius: 8}} resizeMode="cover"/>
+               ) : (
+                  <View style={styles.imageIcon}>
+                    <View style={styles.imageIconInner} />
+                    <View style={styles.imageIconCircle} />
+                  </View>
+               )}
             </View>
-            <Text style={styles.mediaButtonText}>Adicionar uma foto/vídeo</Text>
+            <Text style={styles.mediaButtonText}>
+              {photoUri ? 'Alterar foto' : 'Adicionar uma foto/vídeo'}
+            </Text>
           </TouchableOpacity>
 
           {/* Title */}
@@ -283,7 +335,6 @@ export default function PostActivityModal({
           <TouchableOpacity
             style={styles.visibilityRow}
             onPress={() => {
-              // Cycle through visibility options
               setVisibility((prev) =>
                 prev === 'public' ? 'friends' : prev === 'friends' ? 'private' : 'public'
               );
@@ -296,8 +347,16 @@ export default function PostActivityModal({
 
         {/* Post Button */}
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.postButton} onPress={handlePost}>
-            <Text style={styles.postButtonText}>Publicar</Text>
+          <TouchableOpacity 
+            style={[styles.postButton, isUploading && {opacity: 0.7}]} 
+            onPress={handlePost}
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.postButtonText}>Publicar</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -376,7 +435,6 @@ export default function PostActivityModal({
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={async () => {
-                      // Optional generic share now (kept simple); remove if you truly want only placeholders.
                       if (tempPhotoUri && (await Sharing.isAvailableAsync())) {
                         await Sharing.shareAsync(tempPhotoUri);
                       }
@@ -389,7 +447,7 @@ export default function PostActivityModal({
             ) : null}
           </View>
 
-          {/* Done => store uri in photoUri and go back to PostActivityModal */}
+          {/* Done */}
           <View style={{ padding: 16, paddingBottom: 40, backgroundColor: '#000' }}>
             <TouchableOpacity
               style={{
@@ -400,7 +458,7 @@ export default function PostActivityModal({
               }}
               onPress={() => {
                 if (onConfirmPhoto && tempPhotoUri) {
-                  onConfirmPhoto(tempPhotoUri); // <- pass photo back to HomeScreen
+                  onConfirmPhoto(tempPhotoUri);
                 }
                 setPhotoUri(tempPhotoUri);
                 setPhotoPreviewVisible(false);
@@ -482,6 +540,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    overflow: 'hidden'
   },
   imageIcon: {
     width: 40,
