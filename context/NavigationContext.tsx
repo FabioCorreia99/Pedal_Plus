@@ -18,6 +18,16 @@ type NavigationIntent =
   | {
       type: "add-favorite";
       category: "home" | "work";
+    }
+  | 
+    {
+      type: "staged-route"; // NEW: Two-phase navigation
+      currentOrigin: LatLng;
+      routeOrigin: LatLng;
+      routeDestination: LatLng;
+      currentOriginLabel: string;
+      routeOriginLabel: string;
+      routeDestinationLabel: string;
     };
 
 type NavigationContextType = {

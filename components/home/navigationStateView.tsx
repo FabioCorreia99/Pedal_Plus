@@ -14,78 +14,9 @@ interface NavigatingStateProps {
   duration?: string;
   currentStep?: { step: NavigationStep; index: number; distanceToEnd: number } | null;
   onRouteComplete?: () => void;
+  routeStartTime?: Date | null;
+  hasFirstLocationUpdate?: boolean;
 }
-
-// export default function NavigatingState({
-//   onBack,
-//   distanceMeters,
-//   duration,
-//   currentStep,
-//   onRouteComplete,
-// }: NavigatingStateProps) {
-//   const durationInMinutes = duration ? Math.ceil(parseInt(duration) / 60) : null;
-//   const durationStr = durationInMinutes ? durationInMinutes.toString() : 'N/A';
-//   const distanceInKm = distanceMeters ? (distanceMeters / 1000).toFixed(1) : null;
-//   const arrivalTime = durationInMinutes ? new Date(Date.now() + durationInMinutes * 60000) : null;
-//   const arrivalHours = arrivalTime ? arrivalTime.getHours() : null;
-//   const arrivalMinutes = arrivalTime
-//     ? arrivalTime.getMinutes().toString().padStart(2, '0')
-//     : null;
-//   const arrivalTimeStr = arrivalTime ? `${arrivalHours}:${arrivalMinutes}` : 'N/A';
-
-//   const stepDistanceStr = currentStep
-//     ? currentStep.distanceToEnd > 1000
-//       ? `${(currentStep.distanceToEnd / 1000).toFixed(1)} km`
-//       : `${Math.round(currentStep.distanceToEnd)} m`
-//     : 'N/A';
-
-//   const hasTriggered = useRef(false);
-
-//   const getRotationForManeuver = (maneuver: string): number => {
-//     const maneuverLower = maneuver.toLowerCase();
-    
-//     // English maneuvers
-//     if (maneuverLower.includes('DEPART') || maneuverLower.includes('CONTINUE')) return 0;
-//     if (maneuverLower.includes('TURN-SLIGHT-RIGHT')) return 30;
-//     if (maneuverLower.includes('TURN-RIGHT') && !maneuverLower.includes('SLIGHT') && !maneuverLower.includes('SHARP')) return 90;
-//     if (maneuverLower.includes('TURN-SHARP-RIGHT')) return 135;
-//     if (maneuverLower.includes('TURN-SLIGHT-LEFT')) return -30;
-//     if (maneuverLower.includes('TURN-LEFT') && !maneuverLower.includes('SLIGHT') && !maneuverLower.includes('SHARP')) return -90;
-//     if (maneuverLower.includes('TURN-SHARP-LEFT')) return -135;
-//     if (maneuverLower.includes('UTURN')) return 180;
-    
-//     // Portuguese maneuvers
-//     if (maneuverLower.includes('EM FRENTE') || maneuverLower.includes('CONTINUAR')) return 0;
-//     if (maneuverLower.includes('LIGEIRAMENTE À DIREITA')) return 30;
-//     if ((maneuverLower.includes('VIRAR') && maneuverLower.includes('DIREITA')) && !maneuverLower.includes('LIGEIRAMENTE') && !maneuverLower.includes('ACENTUADAMENTE')) return 90;
-//     if (maneuverLower.includes('ACENTUADAMENTE À DIREITA')) return 135;
-//     if (maneuverLower.includes('LIGEIRAMENTE À ESQUERDA')) return -30;
-//     if ((maneuverLower.includes('VIRAR') && maneuverLower.includes('ESQUERDA')) && !maneuverLower.includes('LIGEIRAMENTE') && !maneuverLower.includes('ACENTUADAMENTE')) return -90;
-//     if (maneuverLower.includes('ACENTUADAMENTE À ESQUERDA')) return -135;
-//     if (maneuverLower.includes('MEIA VOLTA') || maneuverLower.includes('U-TURN')) return 180;
-    
-//     // Portuguese compass directions
-//     if (maneuverLower.includes('NORTE')) return 0;
-//     if (maneuverLower.includes('NORDESTE')) return 45;
-//     if (maneuverLower.includes('ESTE')) return 90;
-//     if (maneuverLower.includes('SUDESTE')) return 135;
-//     if (maneuverLower.includes('SUL')) return 180;
-//     if (maneuverLower.includes('SUDOESTE')) return -135;
-//     if (maneuverLower.includes('OESTE')) return -90;
-//     if (maneuverLower.includes('NOROESTE')) return -45;
-    
-//     return 0; // default straight
-//   };
-
-//   const iconRotation = currentStep ? getRotationForManeuver(currentStep.step.maneuver) : 0;
-//   console.log('Maneuver:', currentStep?.step.maneuver, 'Rotation:', iconRotation);
-//   useEffect(() => {
-//     // Check if user arrived at destination
-//     if (distanceMeters !== undefined && distanceMeters < 50 && !hasTriggered.current && onRouteComplete) {
-//       hasTriggered.current = true;
-//       onRouteComplete();
-//     }
-//   }, [distanceMeters]);
 
 export default function NavigatingState({
   onBack,
@@ -93,11 +24,14 @@ export default function NavigatingState({
   duration,
   currentStep,
   onRouteComplete,
+  routeStartTime,
+  hasFirstLocationUpdate,
 }: NavigatingStateProps) {
   const hasTriggered = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Calculations
+  const MINIMUM_NAVIGATION_SECONDS = 5; // Prevent instant completion
   const durationInMinutes = duration ? Math.ceil(parseInt(duration) / 60) : null;
   const distanceInKm = distanceMeters ? (distanceMeters / 1000).toFixed(1) : null;
   const arrivalTime = durationInMinutes ? new Date(Date.now() + durationInMinutes * 60000) : null;
@@ -110,6 +44,21 @@ export default function NavigatingState({
       ? `${(currentStep.distanceToEnd / 1000).toFixed(1)} km`
       : `${Math.round(currentStep.distanceToEnd)} m`
     : 'Calculating...';
+
+    
+  // Route completion check
+  useEffect(() => {
+    if (
+      distanceMeters !== undefined && 
+      distanceMeters < 50 && 
+      !hasTriggered.current && 
+      hasFirstLocationUpdate &&  // ← ADD THIS LINE
+      onRouteComplete
+    ) {
+      hasTriggered.current = true;
+      onRouteComplete();
+    }
+  }, [distanceMeters, onRouteComplete, hasFirstLocationUpdate]); 
 
   // Pulse animation for turn indicator when close
   useEffect(() => {

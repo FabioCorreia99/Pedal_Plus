@@ -6,7 +6,7 @@ import {
 } from "@/services/navigationCalculations";
 import * as Location from "expo-location";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, View } from "react-native";
+import { Alert, Dimensions, View } from "react-native";
 import { GooglePlacesAutocompleteRef } from "react-native-google-places-autocomplete";
 
 import ConfirmState from "../../components/home/confirmStateView";
@@ -21,8 +21,7 @@ import {
 
 import { useNavigationIntent } from "@/context/NavigationContext";
 
-const GOOGLE_MAPS_API_KEY = process.env
-  .EXPO_PUBLIC_GOOGLE_MAPS_API_KEY as string;
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
 type LatLng = { latitude: number; longitude: number };
 
@@ -60,13 +59,22 @@ export default function HomeScreen() {
     durationMinutes: number;
     completedAt: Date;
   } | null>(null);
-
+  const [hasFirstLocationUpdate, setHasFirstLocationUpdate] = useState(false);
   const originRef = useRef<GooglePlacesAutocompleteRef>(null);
   const destinationRef = useRef<GooglePlacesAutocompleteRef>(null);
   const hasCompletedRoute = useRef(false);
   const [recentPhotoUri, setRecentPhotoUri] = useState<string | null>(null);
 
-  /* 🔑 Navigation Intent (Favorites → Home) */
+  // NEW: Track pending second phase of navigation 
+  // when the user clicks a route from communities and isnt on the origin
+  const [pendingRoute, setPendingRoute] = useState<{
+    origin: LatLng;
+    destination: LatLng;
+    originLabel: string;
+    destinationLabel: string;
+  } | null>(null);
+
+  /* Navigation Intent (Favorites → Home) */
   const { intent, clearIntent } = useNavigationIntent();
 
   /* ===============================
@@ -106,6 +114,36 @@ export default function HomeScreen() {
       setRouteState("confirm");
       clearIntent();
     }
+
+    if (intent.type === "route") {
+      setOrigin(intent.origin);
+      setDestination(intent.destination);
+      setOriginLabel(intent.originLabel ?? "");
+      setDestinationLabel(intent.destinationLabel ?? "");
+      setRouteState("confirm");
+      setPendingRoute(null); // Clear any pending route
+      clearIntent();
+    }
+
+    // NEW: Handle staged route
+    if (intent.type === "staged-route") {
+      // First phase: Navigate to route origin
+      setOrigin(intent.currentOrigin);
+      setDestination(intent.routeOrigin);
+      setOriginLabel(intent.currentOriginLabel);
+      setDestinationLabel(intent.routeOriginLabel);
+      setRouteState("confirm");
+      
+      // Store the second phase for later
+      setPendingRoute({
+        origin: intent.routeOrigin,
+        destination: intent.routeDestination,
+        originLabel: intent.routeOriginLabel,
+        destinationLabel: intent.routeDestinationLabel,
+      });
+      
+      clearIntent();
+    }
   }, [intent]);
 
   /* ===============================
@@ -122,6 +160,7 @@ export default function HomeScreen() {
       setRouteState("navigating");
       setRouteStartTime(new Date());
       hasCompletedRoute.current = false;
+      setHasFirstLocationUpdate(false);
     }
   };
 
@@ -136,6 +175,53 @@ export default function HomeScreen() {
       (completedAt.getTime() - routeStartTime.getTime()) / 60000,
     );
 
+    // Check if this is phase 1 of a staged route
+    if (pendingRoute) {
+      // Don't save this route or show modal
+      // Instead, transition to the actual route
+      Alert.alert(
+        'Início da Rota Alcançado',
+        'Você chegou ao início da rota. Pronto para começar?',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => {
+              setPendingRoute(null);
+              resetInputs();
+            },
+          },
+          {
+            text: 'Começar Rota',
+            onPress: () => {
+              // Clear ALL route-related state before starting phase 2
+              setCurrentPosition(null); 
+              setRouteCoords([]); // Clear old route coordinates
+              setRouteSteps([]); // Clear old navigation steps
+              setRouteMeta({}); // Clear old metadata
+              setLiveMeta({}); // Clear live navigation data
+              setCurrentStep(null); // Clear current step
+              
+              // Set new route parameters
+              setOrigin(pendingRoute.origin);
+              setDestination(pendingRoute.destination);
+              setOriginLabel(pendingRoute.originLabel);
+              setDestinationLabel(pendingRoute.destinationLabel);
+              setRouteState("confirm");
+              
+              // Reset completion tracking
+              setPendingRoute(null);
+              hasCompletedRoute.current = false;
+              setRouteStartTime(null);
+              setRouteCompletionData(null); 
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // Normal route completion flow
     await saveRecentRoute({
       originLabel,
       destinationLabel,
@@ -154,6 +240,7 @@ export default function HomeScreen() {
     originLabel,
     destinationLabel,
     routeMeta.distanceMeters,
+    pendingRoute,
   ]);
 
   const handleClosePostModal = () => {
@@ -224,6 +311,8 @@ export default function HomeScreen() {
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
           });
+
+          setHasFirstLocationUpdate(true);
 
           if (loc.coords.heading != null && loc.coords.heading !== -1) {
             setUserHeading(loc.coords.heading);
@@ -299,6 +388,7 @@ export default function HomeScreen() {
     setRouteState("search");
     setRouteStartTime(null);
     setRouteCompletionData(null);
+    setPendingRoute(null); // Clear pending route
     hasCompletedRoute.current = false;
     originRef.current?.clear();
     destinationRef.current?.clear();
@@ -373,6 +463,8 @@ export default function HomeScreen() {
           duration={routeMeta.duration}
           currentStep={currentStep}
           onRouteComplete={handleRouteComplete}
+          routeStartTime={routeStartTime}
+          hasFirstLocationUpdate={hasFirstLocationUpdate}
         />
       )}
 

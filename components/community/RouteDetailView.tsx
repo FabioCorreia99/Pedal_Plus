@@ -1,29 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Modal, 
-  TouchableOpacity, 
-  Image, 
-  ScrollView, 
-  ActivityIndicator,
-  Platform, 
-  Dimensions,
-  Alert
-} from 'react-native';
-import { 
-  ArrowLeft, 
-  Heart, 
-  Clock, 
-  Map as MapIcon, 
+import {
+  ArrowLeft,
+  Clock,
+  Heart,
+  Map as MapIcon,
   Navigation,
-  Share2,
-  TrendingUp 
+  TrendingUp
 } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { supabase } from '../../lib/supabase';
 
-import InteractiveMap from '../InteractiveMap'; 
+import InteractiveMap from '../InteractiveMap';
+
+import { useNavigationIntent } from '@/context/NavigationContext';
+import * as Location from 'expo-location';
+import { useRouter } from 'expo-router'; // or your navigation library
+import { LatLng } from 'react-native-maps';
 
 const { width, height } = Dimensions.get('window');
 
@@ -69,6 +73,79 @@ export default function RouteDetailView({ visible, routeId, onClose }: RouteDeta
   const [mapCoordinates, setMapCoordinates] = useState<{latitude: number, longitude: number}[]>([]);
   const [origin, setOrigin] = useState<{latitude: number, longitude: number} | undefined>(undefined);
   const [destination, setDestination] = useState<{latitude: number, longitude: number} | undefined>(undefined);
+
+  const { setIntent } = useNavigationIntent();
+  const router = useRouter();
+
+  const handleStartNavigation = async () => {
+    if (!origin || !destination) {
+      Alert.alert('Erro', 'Não foi possível carregar os pontos da rota.');
+      return;
+    }
+
+    const currentLoc = await Location.getCurrentPositionAsync({});
+    const userPosition = {
+      latitude: currentLoc.coords.latitude,
+      longitude: currentLoc.coords.longitude,
+    };
+
+    const distanceToOrigin = calculateDistance(userPosition, origin);
+
+    if (distanceToOrigin > 0.05) {
+      Alert.alert(
+        'Navegar até o Início',
+        `Você está a ${(distanceToOrigin).toFixed(1)}km do início da rota. Deseja navegar até lá primeiro?`,
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+          {
+            text: 'Navegar para o Início',
+            onPress: () => {
+              // Use staged-route for two-phase navigation
+              setIntent({
+                type: 'staged-route',
+                currentOrigin: userPosition,
+                routeOrigin: origin,
+                routeDestination: destination,
+                currentOriginLabel: 'Localização Atual',
+                routeOriginLabel: route?.name + ' (Início)' || 'Início da Rota',
+                routeDestinationLabel: route?.name + ' (Fim)' || 'Fim da Rota',
+              });
+              onClose();
+              router.push('/(tabs)');
+            },
+          },
+        ]
+      );
+    } else {
+      // User is close enough, start the route navigation directly
+      setIntent({
+        type: 'route',
+        origin: origin,
+        destination: destination,
+        originLabel: route?.name + ' (Início)' || 'Origem',
+        destinationLabel: route?.name + ' (Fim)' || 'Destino',
+      });
+      onClose();
+      router.push('/(tabs)');
+    }
+  };
+
+  // Add this distance calculation helper
+  const calculateDistance = (point1: LatLng, point2: LatLng) => {
+    const R = 6371; // Earth radius in km
+    const dLat = ((point2.latitude - point1.latitude) * Math.PI) / 180;
+    const dLon = ((point2.longitude - point1.longitude) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((point1.latitude * Math.PI) / 180) *
+      Math.cos((point2.latitude * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
 
   useEffect(() => {
     if (visible && routeId) {
@@ -292,7 +369,7 @@ export default function RouteDetailView({ visible, routeId, onClose }: RouteDeta
 
               {/* Botão Flutuante */}
               <View style={styles.footer}>
-                <TouchableOpacity style={styles.startBtn}>
+                <TouchableOpacity style={styles.startBtn} onPress={handleStartNavigation}>
                   <Navigation size={24} color="white" />
                   <Text style={styles.startBtnText}>Iniciar Navegação</Text>
                 </TouchableOpacity>
