@@ -1,3 +1,4 @@
+import FriendRequestsList from "@/components/friends/FriendRequestsList";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { Edit, LogOut, Settings, Share2 } from "lucide-react-native";
@@ -159,6 +160,11 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
+            <Text style={styles.sectionTitle}>Pedidos de Amizade</Text>
+            <FriendRequestsList />
+          </View>
+
           {/* ACTIVITY */}
           <View style={styles.chartCard}>
             <Text style={styles.sectionTitle}>Resumo de Atividade</Text>
@@ -222,7 +228,7 @@ export default function ProfileScreen() {
           {/* ACTIVITY (FEED) */}
           <View style={{ paddingHorizontal: 24, marginTop: 16 }}>
             <Text style={styles.sectionTitle}>Atividades Recentes</Text>
-            <ActivityList userOnly limit={5} />
+            <ActivityList mode="me" limit={5} />
           </View>
 
           {/* LOGOUT */}

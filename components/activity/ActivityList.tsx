@@ -11,6 +11,7 @@ dayjs.extend(relativeTime);
 
 interface Activity {
   id: string;
+  user_id: string;
   title: string | null;
   description: string | null;
   distance_km: number | null;
@@ -23,22 +24,50 @@ interface Activity {
   } | null;
 }
 
+type FeedMode = "public" | "friends" | "me";
+
 interface ActivityListProps {
-  /** true -> apenas atividades do user logado (Profile)
-   *  false -> feed público (Community)
-   */
-  userOnly?: boolean;
+  mode?: FeedMode;
   limit?: number;
 }
 
 /* ---------- COMPONENT ---------- */
 
 export default function ActivityList({
-  userOnly = false,
+  mode = "public",
   limit = 10,
 }: ActivityListProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canFollowMap, setCanFollowMap] = useState<Record<string, boolean>>({});
+
+  const handleFollow = async (activity: Activity) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+    if (activity.user_id === user.id) return;
+
+    const { error } = await supabase.from("friendships").insert({
+      user_id: user.id,
+      friend_id: activity.user_id,
+      status: "pending",
+    });
+
+    if (error) {
+      console.error("Erro ao seguir:", error.message);
+      return;
+    }
+
+    // 👇 AQUI
+    setCanFollowMap((prev) => ({
+      ...prev,
+      [activity.user_id]: false,
+    }));
+
+    alert("Pedido de amizade enviado");
+  };
 
   /* ---------- FETCH ---------- */
 
@@ -50,32 +79,82 @@ export default function ActivityList({
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: relations } = await supabase
+        .from("friendships")
+        .select("user_id, friend_id")
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+
+      const relatedUserIds = new Set<string>();
+
+      relations?.forEach((r) => {
+        if (r.user_id === user.id) {
+          relatedUserIds.add(r.friend_id);
+        } else {
+          relatedUserIds.add(r.user_id);
+        }
+      });
 
       let query = supabase
         .from("activities")
         .select(
           `
-          id,
-          title,
-          description,
-          distance_km,
-          duration_minutes,
-          completed_at,
-          photo_url,
-          profiles (
-            username,
-            avatar_url
-          )
-        `,
+  id,
+  user_id,
+  title,
+  description,
+  distance_km,
+  duration_minutes,
+  completed_at,
+  photo_url,
+  profiles (
+    username,
+    avatar_url
+  )
+`,
         )
+
         .order("completed_at", { ascending: false })
         .limit(limit);
 
-      if (userOnly) {
+      // FEED PESSOAL
+      if (mode === "me") {
         query = query.eq("user_id", user.id);
-      } else {
+      }
+
+      // FEED PÚBLICO
+      if (mode === "public") {
         query = query.eq("visibility", "public");
+      }
+
+      // FEED DE AMIGOS
+      if (mode === "friends") {
+        const { data: friendships, error: friendsError } = await supabase
+          .from("friendships")
+          .select("user_id, friend_id")
+          .eq("status", "accepted")
+          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+
+        if (friendsError) {
+          console.error(friendsError);
+          return;
+        }
+
+        const friendIds = friendships.map((f) =>
+          f.user_id === user.id ? f.friend_id : f.user_id,
+        );
+
+        if (!friendIds.length) {
+          setActivities([]);
+          setLoading(false);
+          return;
+        }
+
+        query = query.eq("visibility", "friends").in("user_id", friendIds);
       }
 
       const { data, error } = await query;
@@ -85,11 +164,22 @@ export default function ActivityList({
         return;
       }
 
-      setActivities((data as unknown as Activity[]) ?? []);
+      const activitiesData = (data as unknown as Activity[]) ?? [];
+      setActivities(activitiesData);
+
+      // calcular se pode seguir cada user
+      const followChecks: Record<string, boolean> = {};
+
+      activitiesData.forEach((activity) => {
+        followChecks[activity.user_id] =
+          activity.user_id !== user.id && !relatedUserIds.has(activity.user_id);
+      });
+
+      setCanFollowMap(followChecks);
     } finally {
       setLoading(false);
     }
-  }, [userOnly, limit]);
+  }, [mode, limit]);
 
   /* ---------- EFFECT ---------- */
 
@@ -113,9 +203,11 @@ export default function ActivityList({
     return (
       <View style={styles.stateContainer}>
         <Text style={styles.stateText}>
-          {userOnly
+          {mode === "me"
             ? "Ainda não registaste nenhuma atividade"
-            : "Ainda não há atividade para mostrar"}
+            : mode === "friends"
+              ? "Ainda não há atividades de amigos"
+              : "Ainda não há atividade para mostrar"}
         </Text>
       </View>
     );
@@ -146,7 +238,24 @@ export default function ActivityList({
 
             {/* TEXTO */}
             <View style={styles.feedTextContainer}>
-              <Text style={styles.userName}>{username}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.userName}>{username}</Text>
+
+                {/* BOTÃO FOLLOW */}
+                {canFollowMap[activity.user_id] && (
+                  <Text
+                    onPress={() => handleFollow(activity)}
+                    style={{
+                      marginLeft: 10,
+                      fontSize: 12,
+                      color: "#FF9E46",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Seguir
+                  </Text>
+                )}
+              </View>
 
               <Text style={styles.feedDate}>
                 {dayjs(activity.completed_at).fromNow()}
