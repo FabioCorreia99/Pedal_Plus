@@ -315,8 +315,6 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: "#eff6ff" }}>
       <InteractiveMap
-        lat={origin?.latitude ?? 52.3676}
-        lon={origin?.longitude ?? 4.9041}
         zoom={12}
         showRoute={routeState !== "search"}
         origin={origin ?? undefined}
