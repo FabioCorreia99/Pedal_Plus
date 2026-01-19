@@ -144,15 +144,15 @@ export default function ActivityList({
               </View>
             )}
 
-            {/* CONTENT */}
-            <View style={styles.content}>
-              <Text style={styles.name}>{username}</Text>
+            {/* TEXTO */}
+            <View style={styles.feedTextContainer}>
+              <Text style={styles.userName}>{username}</Text>
 
-              <Text style={styles.date}>
+              <Text style={styles.feedDate}>
                 {dayjs(activity.completed_at).fromNow()}
               </Text>
 
-              <Text style={styles.text}>
+              <Text style={styles.feedAction}>
                 Completou um passeio de{" "}
                 <Text style={styles.bold}>
                   {(activity.distance_km ?? 0).toFixed(1)} km
@@ -176,62 +176,74 @@ const styles = StyleSheet.create({
   list: {
     marginTop: 8,
   },
+
   item: {
     flexDirection: "row",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EDEDED",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    alignItems: "center",
   },
+
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 15,
   },
+
   avatarFallback: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 15,
     backgroundColor: "#FF9E46",
     alignItems: "center",
     justifyContent: "center",
   },
+
   avatarInitial: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "700",
     fontSize: 16,
   },
-  content: {
+
+  feedTextContainer: {
     flex: 1,
   },
-  name: {
+
+  userName: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#111",
+    fontWeight: "700",
+    color: "#1A1A1A",
   },
-  date: {
+
+  feedDate: {
     fontSize: 12,
     color: "#9ca3af",
-    marginVertical: 2,
+    marginBottom: 2,
   },
-  text: {
-    fontSize: 14,
-    color: "#333",
+
+  feedAction: {
+    fontSize: 13,
+    color: "#444",
     marginTop: 2,
   },
+
   subtitle: {
     fontSize: 13,
     color: "#666",
     marginTop: 4,
   },
+
   bold: {
     fontWeight: "600",
   },
+
   stateContainer: {
     paddingVertical: 24,
     alignItems: "center",
   },
+
   stateText: {
     fontSize: 14,
     color: "#9ca3af",

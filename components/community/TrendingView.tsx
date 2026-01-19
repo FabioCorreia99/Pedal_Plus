@@ -1,13 +1,14 @@
-import { Heart, MapPin } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import ActivityList from "@/components/activity/ActivityList";
+import { Heart, MapPin } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   Image,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 
 // --- CORES (Mantendo a consistência) ---
 const COLORS = {
@@ -39,25 +40,28 @@ export default function TrendingView() {
     // DADOS MOCKADOS (Para visualizar o carrossel agora)
     setRoutesData([
       {
-        id: '1',
-        name: 'Marginal',
-        start: 'Varzim Lazer',
-        end: 'Forte de São João',
-        image: 'https://images.unsplash.com/photo-1541625602330-2277a4c46182?q=80&w=600&auto=format&fit=crop',
+        id: "1",
+        name: "Marginal",
+        start: "Varzim Lazer",
+        end: "Forte de São João",
+        image:
+          "https://images.unsplash.com/photo-1541625602330-2277a4c46182?q=80&w=600&auto=format&fit=crop",
       },
       {
-        id: '2',
-        name: 'Stadium Run',
-        start: 'Main Gate',
-        end: 'North Exit',
-        image: 'https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?q=80&w=600&auto=format&fit=crop',
+        id: "2",
+        name: "Stadium Run",
+        start: "Main Gate",
+        end: "North Exit",
+        image:
+          "https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?q=80&w=600&auto=format&fit=crop",
       },
       {
-        id: '3',
-        name: 'Forest Trail',
-        start: 'Entrance',
-        end: 'Lake View',
-        image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=600&auto=format&fit=crop',
+        id: "3",
+        name: "Forest Trail",
+        start: "Entrance",
+        end: "Lake View",
+        image:
+          "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=600&auto=format&fit=crop",
       },
     ]);
   }, []);
@@ -69,15 +73,19 @@ export default function TrendingView() {
         <View style={styles.cardHeaderRow}>
           <Text style={styles.cardTitle}>{item.name}</Text>
           <TouchableOpacity>
-             <Heart size={18} color={COLORS.darkText} />
+            <Heart size={18} color={COLORS.darkText} />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.cardLocationRow}>
-          <MapPin size={14} color={COLORS.primaryOrange} fill={COLORS.primaryOrange} />
+          <MapPin
+            size={14}
+            color={COLORS.primaryOrange}
+            fill={COLORS.primaryOrange}
+          />
           <Text style={styles.cardLocationText} numberOfLines={1}>
-            <Text style={styles.boldText}>{item.start}</Text> ••••• 
-            <MapPin size={14} color="#D00" style={{marginLeft: 4}} /> 
+            <Text style={styles.boldText}>{item.start}</Text> •••••
+            <MapPin size={14} color="#D00" style={{ marginLeft: 4 }} />
             <Text style={styles.boldText}> {item.end}</Text>
           </Text>
         </View>
@@ -87,7 +95,6 @@ export default function TrendingView() {
 
   return (
     <View style={styles.container}>
-      
       {/* 1. CARROSSEL DE ROTAS (Horizontal) */}
       <View style={styles.carouselSection}>
         <Text style={styles.sectionTitle}>Rotas em Tendência</Text>
@@ -103,35 +110,11 @@ export default function TrendingView() {
         />
       </View>
 
-      {/* 2. FEED ACTIVITY (Conforme a tua primeira imagem) */}
+      {/* 2. FEED ACTIVITY */}
       <View style={styles.feedSection}>
-        <Text style={styles.sectionTitle}>Atividade</Text>
-        
-        {/* Item de Feed Exemplo */}
-        <View style={styles.feedItem}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=200&auto=format&fit=crop' }} 
-            style={styles.avatar} 
-          />
-          <View style={styles.feedTextContainer}>
-            <Text style={styles.userName}>Georg Knorr</Text>
-            <Text style={styles.feedDate}>Quarta-feira, Nov 5, 2025</Text>
-            <Text style={styles.feedAction}>Completou um passeio de 5km perto do Varzim Lazer</Text>
-          </View>
-        </View>
+        <Text style={styles.sectionTitle}>Atividade recente</Text>
 
-        {/* Outro Item de Feed */}
-        <View style={styles.feedItem}>
-          <View style={[styles.avatar, { backgroundColor: COLORS.primaryOrange, alignItems: 'center', justifyContent: 'center' }]}>
-             <Text style={{color: 'white', fontWeight: 'bold'}}>JD</Text>
-          </View>
-          <View style={styles.feedTextContainer}>
-            <Text style={styles.userName}>John Doe</Text>
-            <Text style={styles.feedDate}>Ontem</Text>
-            <Text style={styles.feedAction}>Criou um novo grupo ´Ciclistas Matinais´</Text>
-          </View>
-        </View>
-
+        <ActivityList userOnly={false} limit={20} />
       </View>
     </View>
   );
@@ -143,12 +126,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.darkText,
     marginBottom: 15,
     paddingHorizontal: 20, // Alinhado com o padding do ecrã principal
   },
-  
+
   // CARROSSEL
   carouselSection: {
     marginBottom: 30,
@@ -163,35 +146,35 @@ const styles = StyleSheet.create({
     marginRight: 15,
     backgroundColor: COLORS.cardBg,
     borderRadius: 16, // Mais arredondado conforme design moderno
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: "#EEEEEE",
   },
   cardImage: {
-    width: '100%',
+    width: "100%",
     height: 115,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
   },
   cardContent: {
     padding: 12,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     flex: 1,
   },
   cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   cardTitle: {
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 15,
     color: COLORS.darkText,
     flex: 1,
     marginRight: 8,
   },
   cardLocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 4,
   },
   cardLocationText: {
@@ -201,7 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   boldText: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   // FEED
@@ -209,16 +192,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   feedItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 20,
     marginBottom: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#ddd',
+    backgroundColor: "#ddd",
   },
   feedTextContainer: {
     marginLeft: 15,
@@ -226,7 +209,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.darkText,
   },
   feedDate: {
@@ -236,7 +219,7 @@ const styles = StyleSheet.create({
   },
   feedAction: {
     fontSize: 13,
-    color: '#444',
+    color: "#444",
     marginTop: 2,
   },
 });
